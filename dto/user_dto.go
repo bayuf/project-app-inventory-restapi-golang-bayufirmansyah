@@ -9,13 +9,12 @@ type User struct {
 	Name     string    `json:"name" validate:"required"`
 	Email    string    `json:"email" validate:"required,email"`
 	Password string    `json:"password" validate:"required"`
-	RoleID   int       `json:"role_id" validate:"required"`
-	// IsActive bool      `json:"is_active"`
+	RoleID   int       `json:"role_id" validate:"required,eq=2|eq=3"`
 }
 
 type UserAdd struct {
 	Name     string `json:"name" validate:"required"`
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required"`
-	RoleID   int    `json:"role_id" validate:"required"`
+	RoleID   int    `json:"role_id" validate:"required,eq=2|eq=3"`
 }

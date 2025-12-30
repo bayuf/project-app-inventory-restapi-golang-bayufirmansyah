@@ -28,8 +28,8 @@ CREATE TABLE sessions (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_sessions_user_id ON sessions(user_id);
-CREATE INDEX idx_sessions_expires_at ON sessions(expires_at);
+CREATE INDEX idx_sessions_user_id ON sessions(user_id); --get all user sessions (ex: to revoke all)
+CREATE INDEX idx_sessions_expires_at ON sessions(expires_at); --use to clean all revoked sessions
 
 -- table warehouses
 CREATE TABLE warehouses (

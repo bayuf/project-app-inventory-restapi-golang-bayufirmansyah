@@ -1,12 +1,7 @@
 package model
 
-import (
-	"github.com/google/uuid"
-)
-
 type User struct {
-	ID       uuid.UUID
-	Name     string
+	ModelUser
 	Email    string
 	Password string
 	RoleID   int

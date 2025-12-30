@@ -27,8 +27,8 @@ func (r *UserRepository) AddUser(newUserData model.User) error {
 
 	newUser := newUserData
 	commandTag, err := r.DB.Exec(context.Background(), query,
-		newUser.ID,
-		newUser.Name,
+		newUser.ModelUser.ID,
+		newUser.ModelUser.Name,
 		newUser.Email,
 		newUser.Password,
 		newUser.RoleID,

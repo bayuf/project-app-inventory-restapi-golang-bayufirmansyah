@@ -29,8 +29,10 @@ func (s *UserService) AddUser(newUserData dto.UserAdd) error {
 	}
 	// call repo and send model user
 	if err := s.Repo.AddUser(model.User{
-		ID:       uuid.New(), // create uuid
-		Name:     newUserData.Name,
+		ModelUser: model.ModelUser{
+			ID:   uuid.New(),
+			Name: newUserData.Name,
+		},
 		Email:    newUserData.Email,
 		Password: hashedPassword,
 		RoleID:   newUserData.RoleID,
