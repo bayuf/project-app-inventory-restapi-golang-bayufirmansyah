@@ -7,8 +7,11 @@ import (
 )
 
 type Service struct {
+	UserService *UserService
 }
 
 func NewService(repo *repository.Repository, log *zap.Logger, config utils.Configuration) *Service {
-	return &Service{}
+	return &Service{
+		UserService: NewUserService(repo.UserRepository, log),
+	}
 }

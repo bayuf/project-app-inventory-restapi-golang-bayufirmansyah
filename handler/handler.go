@@ -6,8 +6,11 @@ import (
 )
 
 type Handler struct {
+	UserHandler *UserHandler
 }
 
 func NewHandler(svc *service.Service, log *zap.Logger) *Handler {
-	return &Handler{}
+	return &Handler{
+		UserHandler: NewUserHandler(svc.UserService, log),
+	}
 }

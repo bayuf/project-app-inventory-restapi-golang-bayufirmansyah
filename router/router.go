@@ -16,7 +16,7 @@ func NewRouter(handler *handler.Handler, service *service.Service, log *zap.Logg
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	r.Mount("api", Api(handler, mw))
+	r.Mount("/api", Api(handler, mw))
 
 	return r
 }
@@ -24,8 +24,7 @@ func NewRouter(handler *handler.Handler, service *service.Service, log *zap.Logg
 func Api(handler *handler.Handler, mw *middlewareCustom.Middleware) *chi.Mux {
 	r := chi.NewRouter()
 
-	r.Route("/", func(r chi.Router) {
-	})
+	r.Post("/create_user", handler.UserHandler.Create)
 
 	return r
 }

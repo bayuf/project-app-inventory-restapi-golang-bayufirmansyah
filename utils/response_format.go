@@ -25,7 +25,7 @@ func ResponseSuccess(w http.ResponseWriter, code int, message string, data any) 
 	json.NewEncoder(w).Encode(response)
 }
 
-func ResponseBadRequest(w http.ResponseWriter, code int, message string, errors any) {
+func ResponseFailed(w http.ResponseWriter, code int, message string, errors any) {
 	response := Reponse{
 		Status:  false,
 		Message: message,
