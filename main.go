@@ -40,6 +40,7 @@ func main() {
 	handler := handler.NewHandler(service, logger)
 	router := router.NewRouter(handler, service, logger)
 
+	// start server
 	fmt.Println("server running on http://localhost:8080")
 	if err := http.ListenAndServe(":"+config.Port, router); err != nil {
 		logger.Error("failed running server", zap.Error(err))
