@@ -18,3 +18,8 @@ type UserAdd struct {
 	Password string `json:"password" validate:"required"`
 	RoleID   int    `json:"role_id" validate:"required,eq=2|eq=3"`
 }
+
+type UserReq struct {
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required"`
+}

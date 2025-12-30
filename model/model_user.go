@@ -11,5 +11,6 @@ type ModelUser struct {
 	Name       string    `json:"name"`
 	Created_At time.Time `json:"create_at"`
 	Updated_At time.Time `json:"updated_at"`
+	IsActive   bool      `json:"is_active"`
 	Deleted_At time.Time `json:"deleted_at"`
 }
