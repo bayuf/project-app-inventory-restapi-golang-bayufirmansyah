@@ -22,15 +22,15 @@ type DatabaseConfiguration struct {
 	SSLMode  string
 }
 
-func ReadConfiguration() (Configuration, error) {
+func ReadConfiguration() (*Configuration, error) {
 	viper.SetConfigFile(".env")
 	viper.SetConfigType("env")
 
 	if err := viper.ReadInConfig(); err != nil {
-		return Configuration{}, err
+		return nil, err
 	}
 
-	return Configuration{
+	return &Configuration{
 		JWTKey:      viper.GetString("JWT_KEY"),
 		AppName:     viper.GetString("APP_NAME"),
 		Port:        viper.GetString("PORT"),

@@ -24,9 +24,9 @@ func NewRouter(handler *handler.Handler, service *service.Service, log *zap.Logg
 func Apiv1(handler *handler.Handler, service *service.Service, mw *middlewareCustom.Middleware) *chi.Mux {
 	r := chi.NewRouter()
 
+	// auth routes
 	r.Route("/auth", func(r chi.Router) {
 		r.Post("/login", handler.AuthHandler.Login)
-
 		// protected
 		r.Group(func(r chi.Router) {
 			r.Use(mw.AuthMiddleware.SessionAuthMiddleware())
@@ -35,9 +35,31 @@ func Apiv1(handler *handler.Handler, service *service.Service, mw *middlewareCus
 		})
 	})
 
+	// protected routes
 	r.Group(func(r chi.Router) {
 		r.Use(mw.AuthMiddleware.SessionAuthMiddleware())
-		r.Post("/create_user", handler.UserHandler.Create)
+
+		// users routes
+		r.Route("/users", func(r chi.Router) {
+			r.With(mw.AuthMiddleware.RequireRoles("super_admin", "admin")).
+				Post("/", handler.UserHandler.Create)
+		})
+
+		r.Route("/warehouses", func(r chi.Router) {
+			r.With(mw.AuthMiddleware.RequireRoles("super_admin", "admin")).Group(func(r chi.Router) {
+				r.Post("/", handler.WarehouseHandler.CreateWarehouse)
+
+				r.With(mw.AuthMiddleware.RequireRoles("super_admin", "admin", "staff")).Group(func(r chi.Router) {
+					r.Get("/", handler.WarehouseHandler.List)
+					r.Route("/{warehouse_id}", func(r chi.Router) { //need id
+						r.Get("/", handler.WarehouseHandler.GetById)
+
+					})
+
+				})
+
+			})
+		})
 	})
 
 	return r

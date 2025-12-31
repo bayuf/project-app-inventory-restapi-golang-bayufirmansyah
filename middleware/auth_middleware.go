@@ -82,3 +82,27 @@ func (m *AuthMiddleware) SessionAuthMiddleware() func(http.Handler) http.Handler
 		})
 	}
 }
+
+func (m *AuthMiddleware) RequireRoles(roles ...string) func(http.Handler) http.Handler {
+	allowed := make(map[string]struct{}, len(roles))
+	for _, role := range roles {
+		allowed[role] = struct{}{}
+	}
+
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			user, ok := GetAuthUser(r)
+			if !ok {
+				utils.ResponseFailed(w, http.StatusUnauthorized, "unauthorized", nil)
+				return
+			}
+
+			if _, exists := allowed[user.Role]; !exists {
+				utils.ResponseFailed(w, http.StatusForbidden, "forbidden", nil)
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
+}

@@ -31,12 +31,15 @@ CREATE TABLE sessions (
 CREATE INDEX idx_sessions_user_id ON sessions(user_id); --get all user sessions (ex: to revoke all)
 CREATE INDEX idx_sessions_expires_at ON sessions(expires_at); --use to clean all revoked sessions
 
+
 -- table warehouses
 CREATE TABLE warehouses (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
+    name VARCHAR(100) NOT NULL UNIQUE,
     location TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- table racks

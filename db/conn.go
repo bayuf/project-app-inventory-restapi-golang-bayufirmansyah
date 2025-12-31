@@ -18,7 +18,7 @@ type PgxIface interface {
 	Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
 }
 
-func Connect(log *zap.Logger, config *utils.DatabaseConfiguration) (*pgxpool.Pool, error) {
+func Connect(log *zap.Logger, config utils.DatabaseConfiguration) (*pgxpool.Pool, error) {
 	// "user password dbname sslmode host"
 	dbUrl := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=%s host=%s",
 		config.UserName, config.Password, config.DBName, config.SSLMode, config.HostName)

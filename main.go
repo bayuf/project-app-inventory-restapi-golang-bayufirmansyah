@@ -29,7 +29,7 @@ func main() {
 	}
 
 	// init DB
-	dBConn, err := db.Connect(logger, &config.DB)
+	dBConn, err := db.Connect(logger, config.DB)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -37,7 +37,7 @@ func main() {
 	// Init layer
 	repo := repository.NewRepository(dBConn, logger)
 	service := service.NewService(repo, logger, config)
-	handler := handler.NewHandler(service, logger)
+	handler := handler.NewHandler(service, logger, config)
 	router := router.NewRouter(handler, service, logger)
 
 	// start server

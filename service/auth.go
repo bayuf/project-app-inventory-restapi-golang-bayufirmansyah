@@ -74,7 +74,7 @@ func CreateSession(s *AuthService, userId uuid.UUID) error {
 	err := s.Repo.CreateSession(dto.Session{
 		ID:        uuid.New(),
 		UserID:    userId,
-		ExpiresAt: time.Now().Add(15 * time.Minute),
+		ExpiresAt: time.Now().Add(24 * time.Hour),
 	})
 	if err != nil {
 		return err
