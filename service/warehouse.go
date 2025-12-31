@@ -1,6 +1,8 @@
 package service
 
 import (
+	"context"
+
 	"github.com/bayuf/project-app-inventory-restapi-golang-bayufirmansyah/dto"
 	"github.com/bayuf/project-app-inventory-restapi-golang-bayufirmansyah/model"
 	"github.com/bayuf/project-app-inventory-restapi-golang-bayufirmansyah/repository"
@@ -22,8 +24,8 @@ func NewWarehouseService(repo *repository.WarehouseRepository, log *zap.Logger, 
 	}
 }
 
-func (s *WarehousesService) CreateNewWarehouse(data dto.WarehouseAdd) error {
-	if err := s.Repo.Create(model.Warehouse{
+func (s *WarehousesService) CreateNewWarehouse(ctx context.Context, data dto.WarehouseAdd) error {
+	if err := s.Repo.Create(ctx, model.Warehouse{
 		Name:     data.Name,
 		Location: data.Location,
 	}); err != nil {
@@ -33,8 +35,8 @@ func (s *WarehousesService) CreateNewWarehouse(data dto.WarehouseAdd) error {
 	return nil
 }
 
-func (s *WarehousesService) GetAllWarehouses(page, limit int) (*[]dto.WarehouseResponse, *dto.Pagination, error) {
-	warehouses, total, err := s.Repo.GetAll(page, limit)
+func (s *WarehousesService) GetAllWarehouses(ctx context.Context, page, limit int) (*[]dto.WarehouseResponse, *dto.Pagination, error) {
+	warehouses, total, err := s.Repo.GetAll(ctx, page, limit)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -61,8 +63,8 @@ func (s *WarehousesService) GetAllWarehouses(page, limit int) (*[]dto.WarehouseR
 	return &warehousesRes, &pagination, nil
 }
 
-func (s *WarehousesService) GetById(id int) (*dto.WarehouseResponse, error) {
-	warehouse, err := s.Repo.GetById(id)
+func (s *WarehousesService) GetById(ctx context.Context, id int) (*dto.WarehouseResponse, error) {
+	warehouse, err := s.Repo.GetById(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -74,4 +76,20 @@ func (s *WarehousesService) GetById(id int) (*dto.WarehouseResponse, error) {
 		Created_at: warehouse.Created_at,
 		Updated_at: warehouse.Updated_at,
 	}, nil
+}
+
+func (s *WarehousesService) UpdateWarehouse(ctx context.Context, newData dto.Warehouse) error {
+	if err := s.Repo.Update(ctx, model.Warehouse{
+		ID:       newData.ID,
+		Name:     newData.Name,
+		Location: newData.Location,
+	}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *WarehousesService) DeleteWarehouseById(ctx context.Context, id int) error {
+	return s.Repo.Delete(ctx, id)
 }

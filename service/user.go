@@ -1,6 +1,8 @@
 package service
 
 import (
+	"context"
+
 	"github.com/bayuf/project-app-inventory-restapi-golang-bayufirmansyah/dto"
 	"github.com/bayuf/project-app-inventory-restapi-golang-bayufirmansyah/model"
 	"github.com/bayuf/project-app-inventory-restapi-golang-bayufirmansyah/repository"
@@ -21,8 +23,8 @@ func NewUserService(repo *repository.UserRepository, log *zap.Logger) *UserServi
 	}
 }
 
-func (s *UserService) GetUserData(userId uuid.UUID) (*dto.UserResponse, error) {
-	user, err := s.Repo.GetUserById(userId)
+func (s *UserService) GetUserData(ctx context.Context, userId uuid.UUID) (*dto.UserResponse, error) {
+	user, err := s.Repo.GetUserById(ctx, userId)
 	if err != nil {
 		return nil, err
 	}
@@ -33,14 +35,14 @@ func (s *UserService) GetUserData(userId uuid.UUID) (*dto.UserResponse, error) {
 	}, nil
 }
 
-func (s *UserService) AddUser(newUserData dto.UserAdd) error {
+func (s *UserService) AddUser(ctx context.Context, newUserData dto.UserAdd) error {
 	hashedPassword, err := utils.HashPassword(newUserData.Password)
 	if err != nil {
 		s.Logger.Error("hashing failed")
 		return err
 	}
 	// call repo and send model user
-	if err := s.Repo.AddUser(model.User{
+	if err := s.Repo.AddUser(ctx, model.User{
 		ModelUser: model.ModelUser{
 			ID:   uuid.New(),
 			Name: newUserData.Name,

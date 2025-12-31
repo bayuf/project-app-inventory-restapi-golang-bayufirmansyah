@@ -13,23 +13,23 @@ import (
 )
 
 type AuthRepository struct {
-	DB     db.PgxIface
+	DB     db.DBExecutor
 	Logger *zap.Logger
 }
 
-func NewAuthRepository(db db.PgxIface, log *zap.Logger) *AuthRepository {
+func NewAuthRepository(db db.DBExecutor, log *zap.Logger) *AuthRepository {
 	return &AuthRepository{
 		DB:     db,
 		Logger: log,
 	}
 }
 
-func (r *AuthRepository) FindUserByEmail(userReq model.User) (*model.User, error) {
+func (r *AuthRepository) FindUserByEmail(ctx context.Context, userReq model.User) (*model.User, error) {
 	query := `SELECT id, name, email, password_hash, role_id, is_active, created_at, updated_at
 	FROM users
 	WHERE email=$1 AND deleted_at IS NULL;`
 
-	row := r.DB.QueryRow(context.Background(), query, userReq.Email)
+	row := r.DB.QueryRow(ctx, query, userReq.Email)
 
 	user := model.User{}
 	if err := row.Scan(
@@ -54,14 +54,14 @@ func (r *AuthRepository) FindUserByEmail(userReq model.User) (*model.User, error
 	return &user, nil
 }
 
-func (r *AuthRepository) GetSessionByUserId(userId uuid.UUID) (*dto.ResponseSession, error) {
+func (r *AuthRepository) GetSessionByUserId(ctx context.Context, userId uuid.UUID) (*dto.ResponseSession, error) {
 	query := `SELECT s.id, s.user_id, u.name, u.role_id, r.name, s.created_at, s.expires_at
 	FROM sessions s
 	JOIN users u ON u.id = s.user_id
 	JOIN roles r ON u.role_id = r.id
 	WHERE s.user_id=$1 AND s.revoked_at IS NULL AND s.expires_at > NOW();`
 	session := dto.ResponseSession{}
-	if err := r.DB.QueryRow(context.Background(), query, userId).
+	if err := r.DB.QueryRow(ctx, query, userId).
 		Scan(
 			&session.ID,
 			&session.UserID,
@@ -82,11 +82,11 @@ func (r *AuthRepository) GetSessionByUserId(userId uuid.UUID) (*dto.ResponseSess
 	return &session, nil
 }
 
-func (r *AuthRepository) CreateSession(req dto.Session) error {
+func (r *AuthRepository) CreateSession(ctx context.Context, req dto.Session) error {
 	query := `INSERT INTO sessions (id, user_id, expires_at)
 	VALUES ($1, $2, $3);`
 
-	commandTag, err := r.DB.Exec(context.Background(), query, req.ID, req.UserID, req.ExpiresAt)
+	commandTag, err := r.DB.Exec(ctx, query, req.ID, req.UserID, req.ExpiresAt)
 	if err != nil {
 		if commandTag.RowsAffected() == 0 {
 			r.Logger.Error("failed create new sessions", zap.String("error:", "0 rows affected"))
@@ -100,11 +100,11 @@ func (r *AuthRepository) CreateSession(req dto.Session) error {
 	return nil
 }
 
-func (r *AuthRepository) RevokeSessionByUserId(userId uuid.UUID) error {
+func (r *AuthRepository) RevokeSessionByUserId(ctx context.Context, userId uuid.UUID) error {
 	query := `UPDATE sessions SET revoked_at = NOW()
 			WHERE user_id = $1 AND revoked_at IS NULL AND expires_at > NOW();`
 
-	_, err := r.DB.Exec(context.Background(), query, userId)
+	_, err := r.DB.Exec(ctx, query, userId)
 	if err != nil {
 		r.Logger.Error("cant revoked sessions User ID")
 		return err
@@ -113,11 +113,11 @@ func (r *AuthRepository) RevokeSessionByUserId(userId uuid.UUID) error {
 	return nil
 }
 
-func (r *AuthRepository) RevokeSessionById(sessionId uuid.UUID) error {
+func (r *AuthRepository) RevokeSessionById(ctx context.Context, sessionId uuid.UUID) error {
 	query := `UPDATE sessions SET revoked_at = NOW()
 			WHERE id = $1 AND revoked_at IS NULL AND expires_at > NOW();`
 
-	_, err := r.DB.Exec(context.Background(), query, sessionId)
+	_, err := r.DB.Exec(ctx, query, sessionId)
 	if err != nil {
 		r.Logger.Error("cant revoked sessions by ID")
 		return err
@@ -126,7 +126,7 @@ func (r *AuthRepository) RevokeSessionById(sessionId uuid.UUID) error {
 	return nil
 }
 
-func (r *AuthRepository) ValidateSession(sessionId uuid.UUID) (*dto.ResponseSession, error) {
+func (r *AuthRepository) ValidateSession(ctx context.Context, sessionId uuid.UUID) (*dto.ResponseSession, error) {
 	query := `SELECT s.id, s.user_id, u.name, r.name
 			FROM sessions s
 			JOIN users u ON u.id = s.user_id

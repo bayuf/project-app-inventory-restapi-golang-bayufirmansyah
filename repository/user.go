@@ -11,25 +11,25 @@ import (
 )
 
 type UserRepository struct {
-	DB     db.PgxIface
+	DB     db.DBExecutor
 	Logger *zap.Logger
 }
 
-func NewUserRepository(db db.PgxIface, log *zap.Logger) *UserRepository {
+func NewUserRepository(db db.DBExecutor, log *zap.Logger) *UserRepository {
 	return &UserRepository{
 		DB:     db,
 		Logger: log,
 	}
 }
 
-func (r *UserRepository) GetUserById(userId uuid.UUID) (*model.User, error) {
+func (r *UserRepository) GetUserById(ctx context.Context, userId uuid.UUID) (*model.User, error) {
 	query := `SELECT u.name, r.name
 	FROM users u
 	JOIN roles r ON u.role_id = r.id
 	WHERE u.id=$1 AND u.deleted_at IS NULL AND u.is_active=true;`
 
 	user := model.User{}
-	if err := r.DB.QueryRow(context.Background(), query, userId).Scan(
+	if err := r.DB.QueryRow(ctx, query, userId).Scan(
 		&user.ModelUser.Name,
 		&user.ModelUser.RoleName,
 	); err != nil {
@@ -40,12 +40,12 @@ func (r *UserRepository) GetUserById(userId uuid.UUID) (*model.User, error) {
 	return &user, nil
 }
 
-func (r *UserRepository) AddUser(newUserData model.User) error {
+func (r *UserRepository) AddUser(ctx context.Context, newUserData model.User) error {
 	query := `INSERT INTO users (id, name, email, password_hash, role_id, is_active, deleted_at, created_at, updated_at)
 	VALUES ($1, $2, $3, $4, $5, TRUE, NULL, NOW(), NOW());`
 
 	newUser := newUserData
-	commandTag, err := r.DB.Exec(context.Background(), query,
+	commandTag, err := r.DB.Exec(ctx, query,
 		newUser.ModelUser.ID,
 		newUser.ModelUser.Name,
 		newUser.Email,

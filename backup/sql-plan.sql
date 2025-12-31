@@ -48,8 +48,10 @@ CREATE TABLE racks (
     warehouse_id INT NOT NULL REFERENCES warehouses(id),
     code VARCHAR(50) NOT NULL,
     description TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE (warehouse_id, code)
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE (warehouse_id, code) --must diferent
 );
 
 -- table categories
@@ -57,8 +59,11 @@ CREATE TABLE categories (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) UNIQUE NOT NULL,
     description TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    deleted_at TIMESTAMPTZ
 );
+
 
 -- table items
 CREATE TABLE items (
@@ -66,36 +71,43 @@ CREATE TABLE items (
     name VARCHAR(150) NOT NULL,
     category_id INT NOT NULL REFERENCES categories(id),
     rack_id INT NOT NULL REFERENCES racks(id),
-    stock INT NOT NULL DEFAULT 0,
-    min_stock INT NOT NULL DEFAULT 5,
-    price NUMERIC(12,2) NOT NULL,
+    stock INT NOT NULL DEFAULT 1 CHECK (stock >= 0),
+    min_stock INT NOT NULL DEFAULT 1 CHECK (min_stock >= 0),
+    price NUMERIC(12,2) NOT NULL CHECK (price > 0),
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    deleted_at TIMESTAMPTZ
 );
 
 CREATE INDEX idx_items_stock ON items(stock);
 CREATE INDEX idx_items_category_id ON items(category_id);
 CREATE INDEX idx_items_rack_id ON items(rack_id);
+CREATE INDEX idx_items_deleted_at ON items(deleted_at);
+
 
 -- table sales
 CREATE TABLE sales (
     id UUID PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES users(id),
-    total_amount NUMERIC(14,2) NOT NULL,
+    total_amount NUMERIC(14,2) NOT NULL CHECK (total_amount > 0),
+    status VARCHAR(20) NOT NULL DEFAULT 'COMPLETED',
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE INDEX idx_sales_created_at ON sales(created_at);
 CREATE INDEX idx_sales_user_id ON sales(user_id);
 
+
 -- table stock ajustments
 CREATE TABLE stock_adjustments (
     id UUID PRIMARY KEY,
     item_id UUID NOT NULL REFERENCES items(id),
     user_id UUID NOT NULL REFERENCES users(id),
-    change INT NOT NULL,
+    change INT NOT NULL CHECK (change <> 0),
     reason TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE INDEX idx_stock_adjustments_item_id ON stock_adjustments(item_id);
+CREATE INDEX idx_stock_adjustments_user_id ON stock_adjustments(user_id);
+CREATE INDEX idx_stock_adjustments_created_at ON stock_adjustments(created_at);

@@ -24,6 +24,8 @@ func NewAuthHandler(service *service.AuthService, log *zap.Logger) *AuthHandler 
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
 	if r.Method != "POST" {
 		utils.ResponseFailed(w, http.StatusMethodNotAllowed, "method not allowed", nil)
 		return
@@ -43,7 +45,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// get user id and role(check email and password)
-	session, err := h.Service.Login(user)
+	session, err := h.Service.Login(ctx, user)
 	if err != nil {
 		utils.ResponseFailed(w, http.StatusUnauthorized, "email or password is wrong", err)
 		return
@@ -63,6 +65,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	if r.Method != "POST" {
 		utils.ResponseFailed(w, http.StatusMethodNotAllowed, "method not allowed", nil)
 		return
@@ -74,7 +77,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.Service.Logout(sessionId.ID); err != nil {
+	if err := h.Service.Logout(ctx, sessionId.ID); err != nil {
 		utils.ResponseFailed(w, http.StatusUnauthorized, "cant log out", err)
 		return
 	}

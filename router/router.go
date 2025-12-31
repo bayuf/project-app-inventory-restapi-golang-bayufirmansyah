@@ -1,6 +1,8 @@
 package router
 
 import (
+	"net/http"
+
 	"github.com/bayuf/project-app-inventory-restapi-golang-bayufirmansyah/handler"
 	middlewareCustom "github.com/bayuf/project-app-inventory-restapi-golang-bayufirmansyah/middleware"
 	"github.com/bayuf/project-app-inventory-restapi-golang-bayufirmansyah/service"
@@ -15,6 +17,11 @@ func NewRouter(handler *handler.Handler, service *service.Service, log *zap.Logg
 
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+
+	// checking
+	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("OK"))
+	})
 
 	r.Mount("/api/v1", Apiv1(handler, service, mw))
 
@@ -35,30 +42,24 @@ func Apiv1(handler *handler.Handler, service *service.Service, mw *middlewareCus
 		})
 	})
 
+	// superAdmin := mw.AuthMiddleware.RequireRoles("super_admin")
+	adminOnly := mw.AuthMiddleware.RequireRoles("super_admin", "admin")
+	allRoles := mw.AuthMiddleware.RequireRoles("super_admin", "admin", "staff")
+
 	// protected routes
 	r.Group(func(r chi.Router) {
+
 		r.Use(mw.AuthMiddleware.SessionAuthMiddleware())
 
-		// users routes
-		r.Route("/users", func(r chi.Router) {
-			r.With(mw.AuthMiddleware.RequireRoles("super_admin", "admin")).
-				Post("/", handler.UserHandler.Create)
-		})
-
+		// WAREHOUSES
 		r.Route("/warehouses", func(r chi.Router) {
-			r.With(mw.AuthMiddleware.RequireRoles("super_admin", "admin")).Group(func(r chi.Router) {
-				r.Post("/", handler.WarehouseHandler.CreateWarehouse)
-
-				r.With(mw.AuthMiddleware.RequireRoles("super_admin", "admin", "staff")).Group(func(r chi.Router) {
-					r.Get("/", handler.WarehouseHandler.List)
-					r.Route("/{warehouse_id}", func(r chi.Router) { //need id
-						r.Get("/", handler.WarehouseHandler.GetById)
-
-					})
-
-				})
-
-			})
+			// READ (staff + admin + super_admin)
+			r.With(allRoles).Get("/", handler.WarehouseHandler.List)
+			r.With(allRoles).Get("/{warehouse_id}", handler.WarehouseHandler.GetById)
+			// WRITE (admin + super_admin)
+			r.With(adminOnly).Post("/", handler.WarehouseHandler.CreateWarehouse)
+			r.With(adminOnly).Put("/{warehouse_id}", handler.WarehouseHandler.Update)
+			r.With(adminOnly).Delete("/{warehouse_id}", handler.WarehouseHandler.Delete)
 		})
 	})
 

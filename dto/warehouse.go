@@ -2,6 +2,12 @@ package dto
 
 import "time"
 
+type Warehouse struct {
+	ID       int    `validate:"required,gt=0"`
+	Name     string `validate:"required"`
+	Location string `validate:"required"`
+}
+
 type WarehouseAdd struct {
 	Name     string `validate:"required"`
 	Location string `validate:"required"`

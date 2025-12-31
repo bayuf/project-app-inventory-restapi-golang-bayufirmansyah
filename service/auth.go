@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -24,9 +25,9 @@ func NewAuthService(repo *repository.AuthRepository, log *zap.Logger) *AuthServi
 	}
 }
 
-func (s *AuthService) Login(userReq dto.UserReq) (*dto.ResponseSession, error) {
+func (s *AuthService) Login(ctx context.Context, userReq dto.UserReq) (*dto.ResponseSession, error) {
 	// get user data
-	user, err := s.Repo.FindUserByEmail(model.User{Email: userReq.Email})
+	user, err := s.Repo.FindUserByEmail(ctx, model.User{Email: userReq.Email})
 	if err != nil {
 		s.Logger.Info("email not found", zap.Error(err))
 		return nil, errors.New("invalid credentials")
@@ -45,33 +46,33 @@ func (s *AuthService) Login(userReq dto.UserReq) (*dto.ResponseSession, error) {
 	}
 
 	// revoke active session
-	if err := s.Repo.RevokeSessionByUserId(user.ModelUser.ID); err != nil {
+	if err := s.Repo.RevokeSessionByUserId(ctx, user.ModelUser.ID); err != nil {
 		return nil, err
 	}
 
 	// create new session
-	if err := CreateSession(s, user.ModelUser.ID); err != nil {
+	if err := CreateSession(ctx, s, user.ModelUser.ID); err != nil {
 		return nil, err
 	}
 
 	// get session ID
-	session, err := GetSession(s, user.ModelUser.ID)
+	session, err := GetSession(ctx, s, user.ModelUser.ID)
 	return session, nil
 }
 
-func (s *AuthService) Logout(sessionId uuid.UUID) error {
-	if err := s.Repo.RevokeSessionById(sessionId); err != nil {
+func (s *AuthService) Logout(ctx context.Context, sessionId uuid.UUID) error {
+	if err := s.Repo.RevokeSessionById(ctx, sessionId); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (s *AuthService) ValidateSession(sessionId uuid.UUID) (*dto.ResponseSession, error) {
-	return s.Repo.ValidateSession(sessionId)
+func (s *AuthService) ValidateSession(ctx context.Context, sessionId uuid.UUID) (*dto.ResponseSession, error) {
+	return s.Repo.ValidateSession(ctx, sessionId)
 }
 
-func CreateSession(s *AuthService, userId uuid.UUID) error {
-	err := s.Repo.CreateSession(dto.Session{
+func CreateSession(ctx context.Context, s *AuthService, userId uuid.UUID) error {
+	err := s.Repo.CreateSession(ctx, dto.Session{
 		ID:        uuid.New(),
 		UserID:    userId,
 		ExpiresAt: time.Now().Add(24 * time.Hour),
@@ -82,8 +83,8 @@ func CreateSession(s *AuthService, userId uuid.UUID) error {
 	return nil
 }
 
-func GetSession(s *AuthService, userId uuid.UUID) (*dto.ResponseSession, error) {
-	session, err := s.Repo.GetSessionByUserId(userId)
+func GetSession(ctx context.Context, s *AuthService, userId uuid.UUID) (*dto.ResponseSession, error) {
+	session, err := s.Repo.GetSessionByUserId(ctx, userId)
 	if err != nil {
 		return nil, err
 	}

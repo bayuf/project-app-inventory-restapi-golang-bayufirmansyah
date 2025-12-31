@@ -12,10 +12,14 @@ import (
 	"go.uber.org/zap"
 )
 
-type PgxIface interface {
+type DBExecutor interface {
 	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
 	Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
+}
+
+type TxManager interface {
+	Begin(ctx context.Context) (pgx.Tx, error)
 }
 
 func Connect(log *zap.Logger, config utils.DatabaseConfiguration) (*pgxpool.Pool, error) {

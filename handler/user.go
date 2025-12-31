@@ -26,14 +26,14 @@ func NewUserHandler(service *service.UserService, log *zap.Logger, config *utils
 }
 
 func (h *UserHandler) ShowMyData(w http.ResponseWriter, r *http.Request) {
-
+	ctx := r.Context()
 	userId, ok := middleware.GetAuthUser(r)
 	if !ok {
 		utils.ResponseFailed(w, http.StatusUnauthorized, "user not authenticated", nil)
 		return
 	}
 
-	user, err := h.Service.GetUserData(userId.UserID)
+	user, err := h.Service.GetUserData(ctx, userId.UserID)
 	if err != nil {
 		utils.ResponseFailed(w, http.StatusUnauthorized, "invlaid credentials", err)
 		return
@@ -50,6 +50,7 @@ func (h *UserHandler) ShowMyData(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) Create(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	if r.Method != "POST" {
 		utils.ResponseFailed(w, http.StatusMethodNotAllowed, "method not allowed", nil)
 		return
@@ -68,7 +69,7 @@ func (h *UserHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.Service.AddUser(newUser); err != nil {
+	if err := h.Service.AddUser(ctx, newUser); err != nil {
 		h.Logger.Error("failed to create new user", zap.Error(err))
 		utils.ResponseFailed(w, http.StatusInternalServerError, "failed to create new user", err)
 		return

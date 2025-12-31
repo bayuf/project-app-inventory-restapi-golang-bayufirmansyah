@@ -42,6 +42,7 @@ func GetAuthUser(r *http.Request) (*AuthUser, bool) {
 func (m *AuthMiddleware) SessionAuthMiddleware() func(http.Handler) http.Handler {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := r.Context()
 			// get session from Authorization
 			authHeader := r.Header.Get("Authorization")
 
@@ -63,7 +64,7 @@ func (m *AuthMiddleware) SessionAuthMiddleware() func(http.Handler) http.Handler
 				return
 			}
 
-			sess, err := m.Service.ValidateSession(sessionID)
+			sess, err := m.Service.ValidateSession(ctx, sessionID)
 			if err != nil {
 				utils.ResponseFailed(w, http.StatusUnauthorized, "unauthorized", "token invalid or inactive")
 				return
@@ -76,9 +77,9 @@ func (m *AuthMiddleware) SessionAuthMiddleware() func(http.Handler) http.Handler
 				Role:   sess.RoleName,
 			}
 
-			ctx := context.WithValue(r.Context(), authUserKey, authUser)
+			ctxv := context.WithValue(r.Context(), authUserKey, authUser)
 
-			h.ServeHTTP(w, r.WithContext(ctx))
+			h.ServeHTTP(w, r.WithContext(ctxv))
 		})
 	}
 }
