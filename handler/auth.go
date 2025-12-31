@@ -43,5 +43,12 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.ResponseSuccess(w, http.StatusOK, "success", session)
+	respSession := dto.ResponseSession{
+		ID:        session.ID,
+		UserID:    session.UserID,
+		CreatedAt: session.CreatedAt,
+		ExpiresAt: session.ExpiresAt,
+	}
+
+	utils.ResponseSuccess(w, http.StatusOK, "success", respSession)
 }

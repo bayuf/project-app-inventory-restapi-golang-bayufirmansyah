@@ -16,17 +16,23 @@ func NewRouter(handler *handler.Handler, service *service.Service, log *zap.Logg
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	r.Mount("/api", Api(handler, mw))
+	r.Mount("/api/v1", Apiv1(handler, service, mw))
 
 	return r
 }
 
-func Api(handler *handler.Handler, mw *middlewareCustom.Middleware) *chi.Mux {
+func Apiv1(handler *handler.Handler, service *service.Service, mw *middlewareCustom.Middleware) *chi.Mux {
 	r := chi.NewRouter()
 
-	r.Post("/login", handler.AuthHandler.Login)
+	r.Route("/auth", func(r chi.Router) {
+		r.Post("/login", handler.AuthHandler.Login)
+		// r.Post("/logout", handler.AuthHandler.Login)
+	})
 
-	r.Post("/create_user", handler.UserHandler.Create)
+	r.Group(func(r chi.Router) {
+		r.Use(mw.AuthMiddleware.SessionAuthMiddleware())
+		r.Post("/create_user", handler.UserHandler.Create)
+	})
 
 	return r
 }

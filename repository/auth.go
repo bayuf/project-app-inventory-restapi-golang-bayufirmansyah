@@ -7,6 +7,7 @@ import (
 	"github.com/bayuf/project-app-inventory-restapi-golang-bayufirmansyah/db"
 	"github.com/bayuf/project-app-inventory-restapi-golang-bayufirmansyah/dto"
 	"github.com/bayuf/project-app-inventory-restapi-golang-bayufirmansyah/model"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"go.uber.org/zap"
 )
@@ -23,7 +24,7 @@ func NewAuthRepository(db db.PgxIface, log *zap.Logger) *AuthRepository {
 	}
 }
 
-func (r *AuthRepository) FindUserByEmail(userReq model.User) (model.User, error) {
+func (r *AuthRepository) FindUserByEmail(userReq model.User) (*model.User, error) {
 	query := `SELECT id, name, email, password_hash, role_id, is_active, created_at, updated_at
 	FROM users
 	WHERE email=$1 AND deleted_at IS NULL;`
@@ -43,17 +44,42 @@ func (r *AuthRepository) FindUserByEmail(userReq model.User) (model.User, error)
 	); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			r.Logger.Info("user not found", zap.String("email :", userReq.Email))
-			return model.User{}, errors.New("user not found")
+			return &model.User{}, errors.New("user not found")
 		}
 
 		r.Logger.Error("failed scan user data", zap.Error(err))
-		return model.User{}, err
+		return &model.User{}, err
 	}
 
-	return user, nil
+	return &user, nil
 }
 
-func (r *AuthRepository) CreateSession(req dto.Session) (dto.Session, error) {
+func (r *AuthRepository) GetSessionByUserId(userId uuid.UUID) (*dto.ResponseSession, error) {
+	query := `SELECT s.id, s.user_id, u.role_id, s.created_at, s.expires_at
+	FROM sessions s
+	JOIN users u ON u.id = s.user_id
+	WHERE user_id=$1 AND revoked_at IS NULL;`
+	session := dto.ResponseSession{}
+	if err := r.DB.QueryRow(context.Background(), query, userId).
+		Scan(
+			&session.ID,
+			&session.UserID,
+			&session.RoleId,
+			&session.CreatedAt,
+			&session.ExpiresAt,
+		); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			r.Logger.Info("session not found")
+			return nil, errors.New("session not found")
+		}
+		r.Logger.Error("cant scan row check session status", zap.Error(err))
+		return nil, err
+	}
+
+	return &session, nil
+}
+
+func (r *AuthRepository) CreateSession(req dto.Session) error {
 	query := `INSERT INTO sessions (id, user_id, expires_at)
 	VALUES ($1, $2, $3);`
 
@@ -61,12 +87,46 @@ func (r *AuthRepository) CreateSession(req dto.Session) (dto.Session, error) {
 	if err != nil {
 		if commandTag.RowsAffected() == 0 {
 			r.Logger.Error("failed create new sessions", zap.String("error:", "0 rows affected"))
-			return dto.Session{}, err
+			return err
 		}
 
 		r.Logger.Error("failed create new sessions", zap.Error(err))
-		return dto.Session{}, err
+		return err
 	}
 
-	return req, nil
+	return nil
+}
+
+func (r *AuthRepository) RevokeSessionByUserId(userId uuid.UUID) error {
+	query := `UPDATE sessions SET revoked_at = NOW()
+			WHERE user_id = $1 AND revoked_at IS NULL AND expires_at > NOW();`
+
+	_, err := r.DB.Exec(context.Background(), query, userId)
+	if err != nil {
+		r.Logger.Error("cant revoked sessions")
+		return err
+	}
+
+	return nil
+}
+
+func (r *AuthRepository) ValidateSession(sessionId uuid.UUID) (*dto.ResponseSession, error) {
+	query := `SELECT s.id, s.user_id, u.role_id
+			FROM sessions s
+			JOIN users u ON u.id = s.user_id
+			WHERE s.id = $1
+			  AND s.revoked_at IS NULL
+			  AND s.expires_at > NOW()
+			  AND u.is_active = TRUE
+			  AND u.deleted_at IS NULL;`
+	session := dto.ResponseSession{}
+	if err := r.DB.QueryRow(context.Background(), query, sessionId).Scan(
+		&session.ID,
+		&session.UserID,
+		&session.RoleId,
+	); err != nil {
+		r.Logger.Error("error validate session", zap.Error(err))
+		return nil, err
+	}
+	return &session, nil
 }

@@ -6,13 +6,11 @@ import (
 )
 
 type Middleware struct {
-	Service *service.Service
-	Logger  *zap.Logger
+	AuthMiddleware *AuthMiddleware
 }
 
 func NewCustomMiddleware(service *service.Service, log *zap.Logger) *Middleware {
 	return &Middleware{
-		Service: service,
-		Logger:  log,
+		AuthMiddleware: NewAuthMiddleware(service.AuthService, log),
 	}
 }
