@@ -55,16 +55,19 @@ func (r *AuthRepository) FindUserByEmail(userReq model.User) (*model.User, error
 }
 
 func (r *AuthRepository) GetSessionByUserId(userId uuid.UUID) (*dto.ResponseSession, error) {
-	query := `SELECT s.id, s.user_id, u.role_id, s.created_at, s.expires_at
+	query := `SELECT s.id, s.user_id, u.name, u.role_id, r.name, s.created_at, s.expires_at
 	FROM sessions s
 	JOIN users u ON u.id = s.user_id
-	WHERE user_id=$1 AND revoked_at IS NULL;`
+	JOIN roles r ON u.role_id = r.id
+	WHERE s.user_id=$1 AND s.revoked_at IS NULL AND s.expires_at > NOW();`
 	session := dto.ResponseSession{}
 	if err := r.DB.QueryRow(context.Background(), query, userId).
 		Scan(
 			&session.ID,
 			&session.UserID,
+			&session.Username,
 			&session.RoleId,
+			&session.RoleName,
 			&session.CreatedAt,
 			&session.ExpiresAt,
 		); err != nil {
@@ -103,7 +106,20 @@ func (r *AuthRepository) RevokeSessionByUserId(userId uuid.UUID) error {
 
 	_, err := r.DB.Exec(context.Background(), query, userId)
 	if err != nil {
-		r.Logger.Error("cant revoked sessions")
+		r.Logger.Error("cant revoked sessions User ID")
+		return err
+	}
+
+	return nil
+}
+
+func (r *AuthRepository) RevokeSessionById(sessionId uuid.UUID) error {
+	query := `UPDATE sessions SET revoked_at = NOW()
+			WHERE id = $1 AND revoked_at IS NULL AND expires_at > NOW();`
+
+	_, err := r.DB.Exec(context.Background(), query, sessionId)
+	if err != nil {
+		r.Logger.Error("cant revoked sessions by ID")
 		return err
 	}
 
@@ -111,9 +127,10 @@ func (r *AuthRepository) RevokeSessionByUserId(userId uuid.UUID) error {
 }
 
 func (r *AuthRepository) ValidateSession(sessionId uuid.UUID) (*dto.ResponseSession, error) {
-	query := `SELECT s.id, s.user_id, u.role_id
+	query := `SELECT s.id, s.user_id, u.name, r.name
 			FROM sessions s
 			JOIN users u ON u.id = s.user_id
+			JOIN roles r ON u.role_id = r.id
 			WHERE s.id = $1
 			  AND s.revoked_at IS NULL
 			  AND s.expires_at > NOW()
@@ -123,7 +140,8 @@ func (r *AuthRepository) ValidateSession(sessionId uuid.UUID) (*dto.ResponseSess
 	if err := r.DB.QueryRow(context.Background(), query, sessionId).Scan(
 		&session.ID,
 		&session.UserID,
-		&session.RoleId,
+		&session.Username,
+		&session.RoleName,
 	); err != nil {
 		r.Logger.Error("error validate session", zap.Error(err))
 		return nil, err

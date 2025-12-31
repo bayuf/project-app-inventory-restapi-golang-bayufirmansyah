@@ -15,9 +15,11 @@ type Session struct {
 }
 
 type ResponseSession struct {
-	ID        uuid.UUID `json:"id"`
+	ID        uuid.UUID `json:"token"`
 	UserID    uuid.UUID `json:"user_id"`
+	Username  string    `json:"username"`
 	RoleId    int       `json:"role_id"`
+	RoleName  string    `json:"role_name"`
 	CreatedAt time.Time `json:"created_at"`
 	ExpiresAt time.Time `json:"expires_at"`
 }

@@ -21,6 +21,18 @@ func NewUserService(repo *repository.UserRepository, log *zap.Logger) *UserServi
 	}
 }
 
+func (s *UserService) GetUserData(userId uuid.UUID) (*dto.UserResponse, error) {
+	user, err := s.Repo.GetUserById(userId)
+	if err != nil {
+		return nil, err
+	}
+
+	return &dto.UserResponse{
+		Name:     user.ModelUser.Name,
+		RoleName: user.ModelUser.RoleName,
+	}, nil
+}
+
 func (s *UserService) AddUser(newUserData dto.UserAdd) error {
 	hashedPassword, err := utils.HashPassword(newUserData.Password)
 	if err != nil {

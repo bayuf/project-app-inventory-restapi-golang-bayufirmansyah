@@ -1,8 +1,8 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/bayuf/project-app-inventory-restapi-golang-bayufirmansyah/service"
@@ -16,11 +16,27 @@ type AuthMiddleware struct {
 	Logger  *zap.Logger
 }
 
+type contextKey string
+
+const authUserKey contextKey = "authUser"
+
+type AuthUser struct {
+	ID     uuid.UUID
+	UserID uuid.UUID
+	Name   string
+	Role   string
+}
+
 func NewAuthMiddleware(service *service.AuthService, log *zap.Logger) *AuthMiddleware {
 	return &AuthMiddleware{
 		Service: service,
 		Logger:  log,
 	}
+}
+
+func GetAuthUser(r *http.Request) (*AuthUser, bool) {
+	user, ok := r.Context().Value(authUserKey).(*AuthUser)
+	return user, ok
 }
 
 func (m *AuthMiddleware) SessionAuthMiddleware() func(http.Handler) http.Handler {
@@ -53,11 +69,16 @@ func (m *AuthMiddleware) SessionAuthMiddleware() func(http.Handler) http.Handler
 				return
 			}
 
-			// inject to header
-			r.Header.Set("X-User-ID", sess.UserID.String())
-			r.Header.Set("X-Role-ID", strconv.Itoa(sess.RoleId))
+			authUser := &AuthUser{
+				ID:     sess.ID,
+				UserID: sess.UserID,
+				Name:   sess.Username,
+				Role:   sess.RoleName,
+			}
 
-			h.ServeHTTP(w, r)
+			ctx := context.WithValue(r.Context(), authUserKey, authUser)
+
+			h.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }

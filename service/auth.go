@@ -59,7 +59,10 @@ func (s *AuthService) Login(userReq dto.UserReq) (*dto.ResponseSession, error) {
 	return session, nil
 }
 
-func (s *AuthService) Logout() error {
+func (s *AuthService) Logout(sessionId uuid.UUID) error {
+	if err := s.Repo.RevokeSessionById(sessionId); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -82,7 +85,7 @@ func CreateSession(s *AuthService, userId uuid.UUID) error {
 func GetSession(s *AuthService, userId uuid.UUID) (*dto.ResponseSession, error) {
 	session, err := s.Repo.GetSessionByUserId(userId)
 	if err != nil {
-		return &dto.ResponseSession{}, err
+		return nil, err
 	}
 	return session, nil
 }

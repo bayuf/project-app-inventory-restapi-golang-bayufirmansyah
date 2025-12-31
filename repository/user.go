@@ -6,6 +6,7 @@ import (
 
 	"github.com/bayuf/project-app-inventory-restapi-golang-bayufirmansyah/db"
 	"github.com/bayuf/project-app-inventory-restapi-golang-bayufirmansyah/model"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
@@ -19,6 +20,24 @@ func NewUserRepository(db db.PgxIface, log *zap.Logger) *UserRepository {
 		DB:     db,
 		Logger: log,
 	}
+}
+
+func (r *UserRepository) GetUserById(userId uuid.UUID) (*model.User, error) {
+	query := `SELECT u.name, r.name
+	FROM users u
+	JOIN roles r ON u.role_id = r.id
+	WHERE u.id=$1 AND u.deleted_at IS NULL AND u.is_active=true;`
+
+	user := model.User{}
+	if err := r.DB.QueryRow(context.Background(), query, userId).Scan(
+		&user.ModelUser.Name,
+		&user.ModelUser.RoleName,
+	); err != nil {
+		r.Logger.Error("cant scan get user id", zap.Error(err))
+		return nil, err
+	}
+
+	return &user, nil
 }
 
 func (r *UserRepository) AddUser(newUserData model.User) error {

@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/bayuf/project-app-inventory-restapi-golang-bayufirmansyah/dto"
+	"github.com/bayuf/project-app-inventory-restapi-golang-bayufirmansyah/middleware"
 	"github.com/bayuf/project-app-inventory-restapi-golang-bayufirmansyah/service"
 	"github.com/bayuf/project-app-inventory-restapi-golang-bayufirmansyah/utils"
 	"go.uber.org/zap"
@@ -23,6 +24,11 @@ func NewAuthHandler(service *service.AuthService, log *zap.Logger) *AuthHandler 
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		utils.ResponseFailed(w, http.StatusMethodNotAllowed, "method not allowed", nil)
+		return
+	}
+
 	user := dto.UserReq{}
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
 		utils.ResponseFailed(w, http.StatusBadRequest, "invalid input format", err)
@@ -46,9 +52,33 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	respSession := dto.ResponseSession{
 		ID:        session.ID,
 		UserID:    session.UserID,
+		Username:  session.Username,
+		RoleId:    session.RoleId,
+		RoleName:  session.RoleName,
 		CreatedAt: session.CreatedAt,
 		ExpiresAt: session.ExpiresAt,
 	}
 
 	utils.ResponseSuccess(w, http.StatusOK, "success", respSession)
+}
+
+func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		utils.ResponseFailed(w, http.StatusMethodNotAllowed, "method not allowed", nil)
+		return
+	}
+
+	sessionId, ok := middleware.GetAuthUser(r)
+	if !ok {
+		utils.ResponseFailed(w, http.StatusUnauthorized, "user not authenticated", nil)
+		return
+	}
+
+	if err := h.Service.Logout(sessionId.ID); err != nil {
+		utils.ResponseFailed(w, http.StatusUnauthorized, "cant log out", err)
+		return
+	}
+
+	utils.ResponseSuccess(w, http.StatusOK, "success logout", nil)
+
 }

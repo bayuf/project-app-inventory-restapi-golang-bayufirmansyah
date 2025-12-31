@@ -26,7 +26,13 @@ func Apiv1(handler *handler.Handler, service *service.Service, mw *middlewareCus
 
 	r.Route("/auth", func(r chi.Router) {
 		r.Post("/login", handler.AuthHandler.Login)
-		// r.Post("/logout", handler.AuthHandler.Login)
+
+		// protected
+		r.Group(func(r chi.Router) {
+			r.Use(mw.AuthMiddleware.SessionAuthMiddleware())
+			r.Get("/me", handler.UserHandler.ShowMyData)
+			r.Post("/logout", handler.AuthHandler.Logout)
+		})
 	})
 
 	r.Group(func(r chi.Router) {
