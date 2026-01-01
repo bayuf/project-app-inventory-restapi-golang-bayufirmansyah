@@ -56,10 +56,23 @@ func Apiv1(handler *handler.Handler, service *service.Service, mw *middlewareCus
 			// READ (staff + admin + super_admin)
 			r.With(allRoles).Get("/", handler.WarehouseHandler.List)
 			r.With(allRoles).Get("/{warehouse_id}", handler.WarehouseHandler.GetById)
+
 			// WRITE (admin + super_admin)
 			r.With(adminOnly).Post("/", handler.WarehouseHandler.CreateWarehouse)
 			r.With(adminOnly).Put("/{warehouse_id}", handler.WarehouseHandler.Update)
 			r.With(adminOnly).Delete("/{warehouse_id}", handler.WarehouseHandler.Delete)
+		})
+
+		// RACKS
+		r.Route("/racks", func(r chi.Router) {
+			// READ (staff + admin + super_admin)
+			r.With(allRoles).Get("/", handler.RackHandler.GetAllRacks)
+			r.With(allRoles).Get("/{rack_id}", handler.RackHandler.GetRackById)
+
+			// WRITE (admin + super_admin)
+			r.With(adminOnly).Post("/", handler.RackHandler.Create)
+			r.With(adminOnly).Delete("/{rack_id}", handler.RackHandler.DeleteRack)
+
 		})
 	})
 

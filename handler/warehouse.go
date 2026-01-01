@@ -15,14 +15,14 @@ import (
 )
 
 type WarehouseHandler struct {
-	service *service.WarehousesService
+	Service *service.WarehousesService
 	Logger  *zap.Logger
 	Config  *utils.Configuration
 }
 
 func NewWarehouseHandler(service *service.WarehousesService, log *zap.Logger, config *utils.Configuration) *WarehouseHandler {
 	return &WarehouseHandler{
-		service: service,
+		Service: service,
 		Logger:  log,
 		Config:  config,
 	}
@@ -48,7 +48,7 @@ func (h *WarehouseHandler) CreateWarehouse(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if err := h.service.CreateNewWarehouse(ctx, newWarehouse); err != nil {
+	if err := h.Service.CreateNewWarehouse(ctx, newWarehouse); err != nil {
 		h.Logger.Error("failed to create new warehouse", zap.Error(err))
 		utils.ResponseFailed(w, http.StatusInternalServerError, "failed to create new warehouse", err)
 		return
@@ -76,7 +76,7 @@ func (h *WarehouseHandler) List(w http.ResponseWriter, r *http.Request) {
 	// page limit
 	limit := h.Config.PageLimit
 
-	warehouses, pagination, err := h.service.GetAllWarehouses(ctx, page, limit)
+	warehouses, pagination, err := h.Service.GetAllWarehouses(ctx, page, limit)
 	if err != nil {
 		utils.ResponseFailed(w, http.StatusBadRequest, "cant get all warehouses", err)
 		return
@@ -99,7 +99,7 @@ func (h *WarehouseHandler) GetById(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	warehouse, err := h.service.GetById(ctx, warehouseId)
+	warehouse, err := h.Service.GetById(ctx, warehouseId)
 	if err != nil {
 		utils.ResponseFailed(w, http.StatusBadRequest, "cant find warehouse", errors.New("warehouse not found"))
 		return
@@ -131,7 +131,14 @@ func (h *WarehouseHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.UpdateWarehouse(ctx, newWarehouse); err != nil {
+	// validate
+	messageInvalid, err := utils.ValidateInput(&newWarehouse)
+	if err != nil {
+		utils.ResponseFailed(w, http.StatusBadRequest, "invalid input data", messageInvalid)
+		return
+	}
+
+	if err := h.Service.UpdateWarehouse(ctx, newWarehouse); err != nil {
 		utils.ResponseFailed(w, http.StatusBadRequest, "warehouse not found", err.Error())
 		return
 	}
@@ -153,7 +160,7 @@ func (h *WarehouseHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.DeleteWarehouseById(ctx, warehouseId); err != nil {
+	if err := h.Service.DeleteWarehouseById(ctx, warehouseId); err != nil {
 		utils.ResponseFailed(w, http.StatusBadRequest, "warehouse not found", err.Error())
 		return
 	}

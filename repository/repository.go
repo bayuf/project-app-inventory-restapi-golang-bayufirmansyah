@@ -6,10 +6,11 @@ import (
 )
 
 type Repository struct {
-	UserRepository *UserRepository
-	AuthRepository *AuthRepository
+	*UserRepository
+	*AuthRepository
 
-	WarehouseRepository *WarehouseRepository
+	*WarehouseRepository
+	*RackRepository
 }
 
 func NewRepository(db db.DBExecutor, log *zap.Logger) *Repository {
@@ -18,5 +19,6 @@ func NewRepository(db db.DBExecutor, log *zap.Logger) *Repository {
 		AuthRepository: NewAuthRepository(db, log),
 
 		WarehouseRepository: NewWarehousesRepository(db, log),
+		RackRepository:      NewRackRepository(db, log),
 	}
 }

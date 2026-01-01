@@ -13,14 +13,12 @@ import (
 type WarehousesService struct {
 	Repo   *repository.WarehouseRepository
 	Logger *zap.Logger
-	Config *utils.Configuration
 }
 
-func NewWarehouseService(repo *repository.WarehouseRepository, log *zap.Logger, config *utils.Configuration) *WarehousesService {
+func NewWarehouseService(repo *repository.WarehouseRepository, log *zap.Logger) *WarehousesService {
 	return &WarehousesService{
 		Repo:   repo,
 		Logger: log,
-		Config: config,
 	}
 }
 

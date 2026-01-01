@@ -51,7 +51,7 @@ CREATE TABLE racks (
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE (warehouse_id, code) --must diferent
+    UNIQUE (warehouse_id, code) --must diferent per warehouse_id
 );
 
 -- table categories

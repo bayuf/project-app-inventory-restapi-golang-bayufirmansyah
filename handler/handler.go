@@ -7,10 +7,11 @@ import (
 )
 
 type Handler struct {
-	UserHandler *UserHandler
-	AuthHandler *AuthHandler
+	*UserHandler
+	*AuthHandler
 
-	WarehouseHandler *WarehouseHandler
+	*WarehouseHandler
+	*RackHandler
 }
 
 func NewHandler(svc *service.Service, log *zap.Logger, config *utils.Configuration) *Handler {
@@ -19,5 +20,6 @@ func NewHandler(svc *service.Service, log *zap.Logger, config *utils.Configurati
 		AuthHandler: NewAuthHandler(svc.AuthService, log),
 
 		WarehouseHandler: NewWarehouseHandler(svc.WarehousesService, log, config),
+		RackHandler:      NewRackHandler(svc.RackService, log, config),
 	}
 }
