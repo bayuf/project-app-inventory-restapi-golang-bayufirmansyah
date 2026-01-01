@@ -85,3 +85,11 @@ func (s *RackService) GetRackById(ctx context.Context, id int) (*dto.RackRespons
 func (s *RackService) DeleteRackById(ctx context.Context, id int) error {
 	return s.Repo.Delete(ctx, id)
 }
+
+func (s *RackService) UpdateRackById(ctx context.Context, newRack dto.RackUpdate) error {
+	return s.Repo.Update(ctx, model.Rack{
+		ID:          newRack.ID,
+		Code:        newRack.NewRackCode,
+		Description: newRack.NewRackDescription,
+	})
+}

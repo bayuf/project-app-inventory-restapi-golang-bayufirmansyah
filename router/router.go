@@ -71,6 +71,7 @@ func Apiv1(handler *handler.Handler, service *service.Service, mw *middlewareCus
 
 			// WRITE (admin + super_admin)
 			r.With(adminOnly).Post("/", handler.RackHandler.Create)
+			r.With(adminOnly).Put("/{rack_id}", handler.RackHandler.UpdateRack)
 			r.With(adminOnly).Delete("/{rack_id}", handler.RackHandler.DeleteRack)
 
 		})

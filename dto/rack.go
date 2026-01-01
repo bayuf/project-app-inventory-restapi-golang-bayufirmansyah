@@ -8,6 +8,12 @@ type RackAdd struct {
 	Description string `json:"description" validated:"required"`
 }
 
+type RackUpdate struct {
+	ID                 int    `json:"id" validate:"required,gt=0"`
+	NewRackCode        string `json:"new_code" validate:"required"`
+	NewRackDescription string `json:"new_description" validate:"required"`
+}
+
 type RackResponse struct {
 	ID                int       `json:"id"`
 	Code              string    `json:"rack_code"`

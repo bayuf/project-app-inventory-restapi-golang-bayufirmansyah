@@ -128,3 +128,39 @@ func (h *RackHandler) DeleteRack(w http.ResponseWriter, r *http.Request) {
 
 	utils.ResponseSuccess(w, http.StatusOK, "success", nil)
 }
+
+func (h *RackHandler) UpdateRack(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	if r.Method != "PUT" {
+		utils.ResponseFailed(w, http.StatusMethodNotAllowed, "method not allowed", nil)
+		return
+	}
+
+	strRack := chi.URLParam(r, "rack_id")
+	rackId, err := strconv.Atoi(strRack)
+	if err != nil {
+		utils.ResponseFailed(w, http.StatusBadRequest, "id invalid", nil)
+		return
+	}
+
+	newRack := dto.RackUpdate{ID: rackId}
+	if err := json.NewDecoder(r.Body).Decode(&newRack); err != nil {
+		utils.ResponseFailed(w, http.StatusBadRequest, "invalid input format", err.Error())
+		return
+	}
+
+	// validate
+	messageInvalid, err := utils.ValidateInput(&newRack)
+	if err != nil {
+		utils.ResponseFailed(w, http.StatusBadRequest, "invalid input data", messageInvalid)
+		return
+	}
+
+	if err := h.Service.UpdateRackById(ctx, newRack); err != nil {
+		utils.ResponseFailed(w, http.StatusBadRequest, "rack not found", err.Error())
+		return
+	}
+
+	utils.ResponseSuccess(w, http.StatusOK, "success", nil)
+}

@@ -111,6 +111,25 @@ func (r *RackRepository) Delete(ctx context.Context, id int) error {
 		return err
 	}
 
-	r.Logger.Info("rack deleted ", zap.Int("ID:", id))
+	r.Logger.Info("rack deleted ", zap.Int("ID", id))
+	return nil
+}
+
+func (r *RackRepository) Update(ctx context.Context, newRack model.Rack) error {
+	query := `UPDATE racks SET code = $2, description = $3, updated_at = NOW()
+	WHERE id = $1 AND is_active = TRUE;`
+
+	commandTag, err := r.DB.Exec(ctx, query, newRack.ID, newRack.Code, newRack.Description)
+	if err != nil {
+		if commandTag.RowsAffected() == 0 {
+			r.Logger.Info("rack not found", zap.Error(err))
+			return err
+		}
+
+		r.Logger.Error("error update rack ", zap.Error(err))
+		return err
+	}
+
+	r.Logger.Info("rack updated with ", zap.Int("ID", newRack.ID))
 	return nil
 }
