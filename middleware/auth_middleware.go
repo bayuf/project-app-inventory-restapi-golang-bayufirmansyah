@@ -52,18 +52,21 @@ func (m *AuthMiddleware) SessionAuthMiddleware() func(http.Handler) http.Handler
 				return
 			}
 
+			// validate token type
 			parts := strings.SplitN(authHeader, " ", 2)
 			if len(parts) != 2 || parts[0] != "Bearer" {
 				utils.ResponseFailed(w, http.StatusUnauthorized, "unauthorized", "token type invalid")
 				return
 			}
 
+			// parse string to uuid
 			sessionID, err := uuid.Parse(parts[1])
 			if err != nil {
 				utils.ResponseFailed(w, http.StatusUnauthorized, "unauthorized", "token invalid")
 				return
 			}
 
+			// validate token
 			sess, err := m.Service.ValidateSession(ctx, sessionID)
 			if err != nil {
 				utils.ResponseFailed(w, http.StatusUnauthorized, "unauthorized", "token invalid or inactive")

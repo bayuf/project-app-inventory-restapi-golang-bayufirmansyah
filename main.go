@@ -36,7 +36,7 @@ func main() {
 
 	// Init layer
 	repo := repository.NewRepository(dBConn, logger)
-	service := service.NewService(repo, logger)
+	service := service.NewService(repo, logger, dBConn)
 	handler := handler.NewHandler(service, logger, config)
 	router := router.NewRouter(handler, service, logger)
 

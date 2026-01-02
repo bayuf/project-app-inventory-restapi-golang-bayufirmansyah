@@ -16,6 +16,15 @@ type ItemAdd struct {
 	Price      decimal.Decimal `json:"price" validate:"required,decimal_gt_zero"`
 }
 
+type ItemUpdate struct {
+	ID         uuid.UUID       `validate:"required"`
+	Name       string          `json:"name" validate:"required"`
+	CategoryId int             `json:"category_id" validate:"required,gt=0"`
+	RackId     int             `json:"rack_id" validate:"required,gt=0"`
+	MinStock   int             `json:"min_stock" validate:"required,gt=0"`
+	Price      decimal.Decimal `json:"price" validate:"required,decimal_gt_zero"`
+}
+
 type ItemResponse struct {
 	ID         uuid.UUID       `json:"id"`
 	Name       string          `json:"name"`

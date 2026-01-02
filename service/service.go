@@ -1,6 +1,7 @@
 package service
 
 import (
+	"github.com/bayuf/project-app-inventory-restapi-golang-bayufirmansyah/db"
 	"github.com/bayuf/project-app-inventory-restapi-golang-bayufirmansyah/repository"
 	"go.uber.org/zap"
 )
@@ -12,11 +13,12 @@ type Service struct {
 	*WarehousesService
 	*RackService
 	*CategoryService
-
 	*ItemService
+
+	*SaleService
 }
 
-func NewService(repo *repository.Repository, log *zap.Logger) *Service {
+func NewService(repo *repository.Repository, log *zap.Logger, tx db.TxManager) *Service {
 	return &Service{
 		UserService: NewUserService(repo.UserRepository, log),
 		AuthService: NewAuthService(repo.AuthRepository, log),
@@ -24,7 +26,8 @@ func NewService(repo *repository.Repository, log *zap.Logger) *Service {
 		WarehousesService: NewWarehouseService(repo.WarehouseRepository, log),
 		RackService:       NewRackService(repo.RackRepository, log),
 		CategoryService:   NewCategoryService(repo.CategoryRepository, log),
+		ItemService:       NewItemService(repo.ItemRepository, log),
 
-		ItemService: NewItemService(repo.ItemRepository, log),
+		SaleService: NewSaleService(log, tx),
 	}
 }

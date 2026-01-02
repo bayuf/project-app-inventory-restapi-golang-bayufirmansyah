@@ -97,8 +97,16 @@ func Apiv1(handler *handler.Handler, service *service.Service, mw *middlewareCus
 
 			// WRITE (admin + super admin)
 			r.With(adminOnly).Post("/", handler.ItemHandler.InputNewItem)
-
+			r.With(adminOnly).Put("/{item_id}", handler.ItemHandler.UpdateItem)
 			r.With(adminOnly).Delete("/{item_id}", handler.ItemHandler.DeleteItem)
+		})
+
+		// SALE
+		r.Route("/sales", func(r chi.Router) {
+			// READ (staff + admin + super admin)
+
+			// WRITE (admin + super admin)
+			r.With(adminOnly).Post("/", handler.SaleHandler.InsertNewSale)
 		})
 	})
 

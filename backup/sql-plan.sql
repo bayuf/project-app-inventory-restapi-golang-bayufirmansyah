@@ -97,6 +97,18 @@ CREATE TABLE sales (
 CREATE INDEX idx_sales_created_at ON sales(created_at);
 CREATE INDEX idx_sales_user_id ON sales(user_id);
 
+-- table sale items
+CREATE TABLE sale_items (
+    id SERIAL PRIMARY KEY,
+    sale_id UUID NOT NULL REFERENCES sales(id) ON DELETE CASCADE,
+    item_id UUID NOT NULL REFERENCES items(id),
+    quantity INT NOT NULL CHECK (quantity > 0),
+    price NUMERIC(12,2) NOT NULL CHECK (price > 0),
+    subtotal NUMERIC(14,2) NOT NULL CHECK (subtotal > 0)
+);
+
+CREATE INDEX idx_sale_items_sale_id ON sale_items(sale_id);
+CREATE INDEX idx_sale_items_item_id ON sale_items(item_id);
 
 -- table stock ajustments
 CREATE TABLE stock_adjustments (

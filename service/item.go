@@ -94,6 +94,17 @@ func (s *ItemService) GetItem(ctx context.Context, id uuid.UUID) (*dto.ItemRespo
 	return &itemsRes, nil
 }
 
+func (s *ItemService) UpdateItem(ctx context.Context, new dto.ItemUpdate) error {
+	return s.Repo.Update(ctx, model.Item{
+		ID:         new.ID,
+		Name:       new.Name,
+		CategoryID: new.CategoryId,
+		RackID:     new.RackId,
+		MinStock:   new.MinStock,
+		Price:      new.Price,
+	})
+}
+
 func (s *ItemService) DeleteItem(ctx context.Context, id uuid.UUID) error {
 	return s.Repo.Delete(ctx, id)
 }

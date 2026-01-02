@@ -110,6 +110,27 @@ func (r *ItemRepository) GetItem(ctx context.Context, id uuid.UUID) (*model.Item
 	return &item, nil
 }
 
+func (r *ItemRepository) Update(ctx context.Context, new model.Item) error {
+	query := `
+		UPDATE items
+		SET name = $2, category_id = $3, rack_id = $4, min_stock = $5, price = $6, updated_at = NOW()
+		WHERE id = $1 AND deleted_at IS NULL;`
+
+	commandTag, err := r.DB.Exec(ctx, query, new.ID, new.Name, new.CategoryID, new.RackID, new.MinStock, new.Price)
+	if err != nil {
+		if commandTag.RowsAffected() == 0 {
+			r.Logger.Info("item not found or error", zap.Error(err))
+			return err
+		}
+
+		r.Logger.Error("error update item ", zap.Error(err))
+		return err
+	}
+
+	r.Logger.Info("item updated ", zap.Any("ID", new.ID))
+	return nil
+}
+
 func (r *ItemRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	query := `UPDATE items
 	SET deleted_at = NOW(), updated_at = NOW()

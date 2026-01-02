@@ -106,6 +106,42 @@ func (h *ItemHandler) GetItemById(w http.ResponseWriter, r *http.Request) {
 	utils.ResponseSuccess(w, http.StatusOK, "success", items)
 }
 
+func (h *ItemHandler) UpdateItem(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	if r.Method != "PUT" {
+		utils.ResponseFailed(w, http.StatusMethodNotAllowed, "method not allowed", nil)
+		return
+	}
+
+	strItemId := chi.URLParam(r, "item_id")
+
+	uuidItemId, err := uuid.Parse(strItemId)
+	if err != nil {
+		utils.ResponseFailed(w, http.StatusBadRequest, "id not valid", err.Error())
+	}
+
+	newItem := dto.ItemUpdate{ID: uuidItemId}
+	if err := json.NewDecoder(r.Body).Decode(&newItem); err != nil {
+		utils.ResponseFailed(w, http.StatusBadRequest, "invalid input format", err)
+		return
+	}
+
+	// validate
+	messageInvalid, err := utils.ValidateInput(&newItem)
+	if err != nil {
+		utils.ResponseFailed(w, http.StatusBadRequest, "invalid input data", messageInvalid)
+		return
+	}
+
+	if err := h.Service.UpdateItem(ctx, newItem); err != nil {
+		utils.ResponseFailed(w, http.StatusBadRequest, "cant update item", err.Error())
+		return
+	}
+
+	utils.ResponseSuccess(w, http.StatusOK, "success", nil)
+
+}
+
 func (h *ItemHandler) DeleteItem(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	if r.Method != "DELETE" {
