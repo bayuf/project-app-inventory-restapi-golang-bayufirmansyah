@@ -80,8 +80,13 @@ func Apiv1(handler *handler.Handler, service *service.Service, mw *middlewareCus
 		// CATEGORIES
 		r.Route("/categories", func(r chi.Router) {
 			// READ (staff + admin + super admin)
+			r.With(allRoles).Get("/", handler.CategoryHandler.List)
+			r.With(allRoles).Get("/{category_id}", handler.CategoryHandler.GetById)
+
 			// WRITE (admin + super admin)
-			r.With(allRoles).Post("/", handler.CategoryHandler.CreateCategory)
+			r.With(adminOnly).Post("/", handler.CategoryHandler.CreateCategory)
+			r.With(adminOnly).Put("/{category_id}", handler.CategoryHandler.Update)
+			r.With(adminOnly).Delete("/{category_id}", handler.CategoryHandler.DeleteById)
 		})
 	})
 

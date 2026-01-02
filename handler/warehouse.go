@@ -3,7 +3,6 @@ package handler
 import (
 	"encoding/json"
 	"errors"
-	"log"
 	"net/http"
 	"strconv"
 
@@ -65,7 +64,6 @@ func (h *WarehouseHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	page, err := strconv.Atoi(r.URL.Query().Get("page"))
-	log.Println(page)
 
 	if err != nil {
 		h.Logger.Info("invalid page :", zap.Error(err))

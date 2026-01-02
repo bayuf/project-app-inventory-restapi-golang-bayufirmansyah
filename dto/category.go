@@ -7,6 +7,11 @@ type CategoryAdd struct {
 	Description string `json:"description" validate:"required"`
 }
 
+type CategoryUpdate struct {
+	ID          int    `json:"id" validate:"required,gt=0"`
+	Name        string `json:"new_name" validate:"required"`
+	Description string `json:"new_description" validate:"required"`
+}
 type CategoryResponse struct {
 	ID          int       `json:"id"`
 	Name        string    `json:"name"`
