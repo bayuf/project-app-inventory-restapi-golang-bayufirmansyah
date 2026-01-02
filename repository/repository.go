@@ -12,6 +12,8 @@ type Repository struct {
 	*WarehouseRepository
 	*RackRepository
 	*CategoryRepository
+
+	*ItemRepository
 }
 
 func NewRepository(db db.DBExecutor, log *zap.Logger) *Repository {
@@ -22,5 +24,7 @@ func NewRepository(db db.DBExecutor, log *zap.Logger) *Repository {
 		WarehouseRepository: NewWarehousesRepository(db, log),
 		RackRepository:      NewRackRepository(db, log),
 		CategoryRepository:  NewCategoryRepository(db, log),
+
+		ItemRepository: NewItemRepository(db, log),
 	}
 }
