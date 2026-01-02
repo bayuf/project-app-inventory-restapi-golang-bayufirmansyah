@@ -23,6 +23,7 @@ func NewRouter(handler *handler.Handler, service *service.Service, log *zap.Logg
 		w.Write([]byte("OK"))
 	})
 
+	// main route
 	r.Mount("/api/v1", Apiv1(handler, service, mw))
 
 	return r
@@ -74,6 +75,13 @@ func Apiv1(handler *handler.Handler, service *service.Service, mw *middlewareCus
 			r.With(adminOnly).Put("/{rack_id}", handler.RackHandler.UpdateRack)
 			r.With(adminOnly).Delete("/{rack_id}", handler.RackHandler.DeleteRack)
 
+		})
+
+		// CATEGORIES
+		r.Route("/categories", func(r chi.Router) {
+			// READ (staff + admin + super admin)
+			// WRITE (admin + super admin)
+			r.With(allRoles).Post("/", handler.CategoryHandler.CreateCategory)
 		})
 	})
 
