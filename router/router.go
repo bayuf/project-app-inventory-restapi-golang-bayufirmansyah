@@ -88,6 +88,18 @@ func Apiv1(handler *handler.Handler, service *service.Service, mw *middlewareCus
 			r.With(adminOnly).Put("/{category_id}", handler.CategoryHandler.Update)
 			r.With(adminOnly).Delete("/{category_id}", handler.CategoryHandler.DeleteById)
 		})
+
+		// ITEMS
+		r.Route("/items", func(r chi.Router) {
+			// READ (staff + admin + super admin)
+			r.With(allRoles).Get("/", handler.ItemHandler.GetAllItems)
+			r.With(allRoles).Get("/{item_id}", handler.ItemHandler.GetItemById)
+
+			// WRITE (admin + super admin)
+			r.With(adminOnly).Post("/", handler.ItemHandler.InputNewItem)
+
+			r.With(adminOnly).Delete("/{item_id}", handler.ItemHandler.DeleteItem)
+		})
 	})
 
 	return r

@@ -2,50 +2,69 @@ package utils
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/shopspring/decimal"
 )
 
-var validate *validator.Validate
-
-// validator inline message
-func ValidateInput(data any) (string, error) {
-	// Create new validation and check the struct
-	validate = validator.New()
-	err := validate.Struct(data)
-
-	if err != nil {
-		// Handle invalid validation errors
-		if _, ok := err.(*validator.InvalidValidationError); ok {
-			fmt.Println(err)
-			return "", nil
-		}
-
-		// Collect validation errors
-		var errors []string
-		for _, e := range err.(validator.ValidationErrors) {
-			var message string
-			if e.Tag() == "email" {
-				message = "Please input correct email format"
-			} else {
-				message = fmt.Sprintf("%s must %s", e.Field(), e.Tag())
-			}
-			errors = append(errors, message)
-		}
-		return fmt.Sprint(errors), err
-	}
-
-	return "", nil
-}
+var (
+	validate *validator.Validate
+	once     sync.Once
+)
 
 type FieldError struct {
 	Field   string `json:"field"`
 	Message string `json:"message"`
 }
 
-// validator object struct message
+func getValidator() *validator.Validate {
+	once.Do(func() {
+		validate = validator.New()
+
+		// REGISTER CUSTOM DECIMAL VALIDATOR
+		validate.RegisterValidation("decimal_gt_zero", func(fl validator.FieldLevel) bool {
+			d, ok := fl.Field().Interface().(decimal.Decimal)
+			if !ok {
+				return false
+			}
+			return d.GreaterThan(decimal.Zero)
+		})
+	})
+
+	return validate
+}
+func ValidateInput(data any) (string, error) {
+	validate := getValidator()
+
+	err := validate.Struct(data)
+	if err == nil {
+		return "", nil
+	}
+
+	if _, ok := err.(*validator.InvalidValidationError); ok {
+		return "", err
+	}
+
+	var errors []string
+	for _, e := range err.(validator.ValidationErrors) {
+		var message string
+		switch e.Tag() {
+		case "email":
+			message = "Please input correct email format"
+		case "decimal_gt_zero":
+			message = fmt.Sprintf("%s must be greater than 0", e.Field())
+		default:
+			message = fmt.Sprintf("%s must %s", e.Field(), e.Tag())
+		}
+		errors = append(errors, message)
+	}
+
+	return fmt.Sprint(errors), err
+}
+
 func ValidateErrors(data any) ([]FieldError, error) {
-	validate := validator.New()
+	validate := getValidator()
 
 	err := validate.Struct(data)
 	if err == nil {
@@ -57,11 +76,14 @@ func ValidateErrors(data any) ([]FieldError, error) {
 	if validationErrors, ok := err.(validator.ValidationErrors); ok {
 		for _, err := range validationErrors {
 			var message string
+
 			switch err.Tag() {
 			case "required":
 				message = fmt.Sprintf("%s is required", err.Field())
 			case "email":
 				message = "Please enter a valid email format"
+			case "decimal_gt_zero":
+				message = fmt.Sprintf("%s must be greater than 0", err.Field())
 			case "gte":
 				message = fmt.Sprintf("%s must be a non-negative number", err.Field())
 			case "min":
@@ -80,6 +102,5 @@ func ValidateErrors(data any) ([]FieldError, error) {
 		return errors, err
 	}
 
-	// Fallback: return original error if not a validation error
 	return nil, err
 }
