@@ -28,6 +28,6 @@ func NewService(repo *repository.Repository, log *zap.Logger, tx db.TxManager) *
 		CategoryService:   NewCategoryService(repo.CategoryRepository, log),
 		ItemService:       NewItemService(repo.ItemRepository, log),
 
-		SaleService: NewSaleService(log, tx),
+		SaleService: NewSaleService(repo.SaleRepository, log, tx),
 	}
 }

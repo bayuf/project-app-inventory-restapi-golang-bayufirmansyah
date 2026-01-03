@@ -21,6 +21,27 @@ func NewSaleRepository(db db.DBExecutor, log *zap.Logger) *SaleRepository {
 	}
 }
 
+func (r *SaleRepository) GetSaleDetailById(ctx context.Context, id uuid.UUID) (*dto.SaleDetailResponse, error) {
+	query := `
+	SELECT
+	s.id, si.item_id, i.name, si.quantity, si.price, s.total_amount, s.status, s.created_at
+	FROM sales s
+		JOIN sale_items si ON s.id = si.sale_id
+		JOIN items i ON si.item_id = i.id
+	WHERE s.id = $1;`
+
+	sale := dto.SaleDetailResponse{}
+	if err := r.DB.QueryRow(ctx, query, id).Scan(
+		&sale.ID, &sale.ItemID, &sale.ItemName, &sale.Quantity,
+		&sale.Price, &sale.TotalAmount, &sale.Status, &sale.Created_At,
+	); err != nil {
+		r.Logger.Error("cant scan sale detail", zap.Error(err))
+		return nil, err
+	}
+
+	return &sale, nil
+}
+
 func (r *SaleRepository) GetItemById(ctx context.Context, id uuid.UUID) (*dto.ItemResponse, error) {
 	query := `
 	SELECT
@@ -46,7 +67,7 @@ func (r *SaleRepository) GetSaleById(ctx context.Context, id uuid.UUID) (*dto.Sa
 
 	data := dto.SaleResponse{}
 	if err := r.DB.QueryRow(ctx, query, id).
-		Scan(&data.ID, &data.TotalAmmount, &data.Status, &data.Created_At); err != nil {
+		Scan(&data.ID, &data.TotalAmount, &data.Status, &data.Created_At); err != nil {
 		r.Logger.Error("cant scan getSaleById", zap.Error(err))
 		return nil, err
 	}

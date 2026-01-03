@@ -8,6 +8,8 @@ import (
 	"github.com/bayuf/project-app-inventory-restapi-golang-bayufirmansyah/middleware"
 	"github.com/bayuf/project-app-inventory-restapi-golang-bayufirmansyah/service"
 	"github.com/bayuf/project-app-inventory-restapi-golang-bayufirmansyah/utils"
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
@@ -23,6 +25,28 @@ func NewSaleHandler(service *service.SaleService, log *zap.Logger, config *utils
 		Logger:  log,
 		Config:  config,
 	}
+}
+
+func (h *SaleHandler) GetSaleInfo(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	if r.Method != "GET" {
+		utils.ResponseFailed(w, http.StatusMethodNotAllowed, "method not allowed", nil)
+	}
+
+	strSaleId := chi.URLParam(r, "sale_id")
+
+	uuidSaleId, err := uuid.Parse(strSaleId)
+	if err != nil {
+		utils.ResponseFailed(w, http.StatusBadRequest, "id not valid", err.Error())
+	}
+
+	sale, err := h.Service.GetSaleDetailById(ctx, uuidSaleId)
+	if err != nil {
+		utils.ResponseFailed(w, http.StatusBadRequest, "cant get sale detail", err.Error())
+		return
+	}
+
+	utils.ResponseSuccess(w, http.StatusOK, "success", sale)
 }
 
 func (h *SaleHandler) InsertNewSale(w http.ResponseWriter, r *http.Request) {

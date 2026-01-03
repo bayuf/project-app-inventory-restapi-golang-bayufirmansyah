@@ -13,12 +13,14 @@ import (
 )
 
 type SaleService struct {
+	Repo   *repository.SaleRepository
 	Tx     db.TxManager
 	Logger *zap.Logger
 }
 
-func NewSaleService(log *zap.Logger, tx db.TxManager) *SaleService {
+func NewSaleService(repo *repository.SaleRepository, log *zap.Logger, tx db.TxManager) *SaleService {
 	return &SaleService{
+		Repo:   repo,
 		Tx:     tx,
 		Logger: log,
 	}
@@ -29,11 +31,15 @@ func (s *SaleService) NewSaleTX(ctx context.Context, newSale dto.NewSale, userId
 	if err != nil {
 		return nil, err
 	}
+
+	// cancel all changes if error
 	defer tx.Rollback(ctx)
-	repo := repository.NewSaleRepository(tx, s.Logger)
+
+	// init repo with TX
+	repoTx := repository.NewSaleRepository(tx, s.Logger)
 
 	// get item info
-	itemInfo, err := repo.GetItemById(ctx, newSale.ItemID)
+	itemInfo, err := repoTx.GetItemById(ctx, newSale.ItemID)
 	if err != nil {
 		return nil, err
 	}
@@ -54,12 +60,12 @@ func (s *SaleService) NewSaleTX(ctx context.Context, newSale dto.NewSale, userId
 		TotalAmount: Total,
 		Status:      "COMPLETED",
 	}
-	if err := repo.InsertNewSale(ctx, newSales); err != nil {
+	if err := repoTx.InsertNewSale(ctx, newSales); err != nil {
 		return nil, err
 	}
 
 	// Insert to sales_items
-	if err := repo.InsertSaleItem(ctx, dto.SalesItemsUpdate{
+	if err := repoTx.InsertSaleItem(ctx, dto.SalesItemsUpdate{
 		SaleID:   newSales.ID,
 		ItemID:   newSale.ItemID,
 		Quantity: newSale.Quantity,
@@ -75,7 +81,7 @@ func (s *SaleService) NewSaleTX(ctx context.Context, newSale dto.NewSale, userId
 		return nil, errors.New("invalid quantity")
 	}
 
-	if err := repo.UpdateStock(ctx, dto.StockUpdateFromSale{
+	if err := repoTx.UpdateStock(ctx, dto.StockUpdateFromSale{
 		ID:    newSale.ItemID,
 		Stock: newStock,
 	}); err != nil {
@@ -83,21 +89,27 @@ func (s *SaleService) NewSaleTX(ctx context.Context, newSale dto.NewSale, userId
 	}
 
 	// get sale data
-	finalSale, err := repo.GetSaleById(ctx, newSales.ID)
+	finalSale, err := repoTx.GetSaleById(ctx, newSales.ID)
 	if err != nil {
 		s.Logger.Error("cant get sale in service", zap.Error(err))
 		return nil, err
 	}
 
+	// commit changes
 	if err := tx.Commit(ctx); err != nil {
 		s.Logger.Error("transaction failed", zap.Error(err))
 		return nil, err
 	}
 
 	return &dto.SaleResponse{
-		ID:           finalSale.ID,
-		TotalAmmount: finalSale.TotalAmmount,
-		Status:       finalSale.Status,
-		Created_At:   finalSale.Created_At,
+		ID:          finalSale.ID,
+		TotalAmount: finalSale.TotalAmount,
+		Status:      finalSale.Status,
+		Created_At:  finalSale.Created_At,
 	}, nil
+}
+
+func (s *SaleService) GetSaleDetailById(ctx context.Context, id uuid.UUID) (*dto.SaleDetailResponse, error) {
+
+	return s.Repo.GetSaleDetailById(ctx, id)
 }

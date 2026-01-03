@@ -13,10 +13,21 @@ type NewSale struct {
 }
 
 type SaleResponse struct {
-	ID           uuid.UUID       `json:"id"`
-	TotalAmmount decimal.Decimal `json:"total_ammount"`
-	Status       string          `json:"status"`
-	Created_At   time.Time       `json:"created_at"`
+	ID          uuid.UUID       `json:"id"`
+	TotalAmount decimal.Decimal `json:"total_amount"`
+	Status      string          `json:"status"`
+	Created_At  time.Time       `json:"created_at"`
+}
+
+type SaleDetailResponse struct {
+	ID          uuid.UUID       `json:"id"`
+	ItemID      uuid.UUID       `json:"item_id"`
+	ItemName    string          `json:"item_name"`
+	Quantity    int             `json:"quantity"`
+	Price       decimal.Decimal `json:"price"`
+	TotalAmount decimal.Decimal `json:"total_amount"`
+	Status      string          `json:"status"`
+	Created_At  time.Time       `json:"created_at"`
 }
 
 type SalesUpdate struct {
