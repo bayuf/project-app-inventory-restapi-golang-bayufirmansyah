@@ -145,3 +145,39 @@ func (h *SaleHandler) GetAllSales(w http.ResponseWriter, r *http.Request) {
 
 	utils.ResponsePagination(w, http.StatusOK, "success", items, *pagination)
 }
+
+func (h *SaleHandler) UpdateSaleStatus(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	if r.Method != "PATCH" {
+		utils.ResponseFailed(w, http.StatusMethodNotAllowed, "method not allowed", nil)
+	}
+
+	status := dto.NewSaleStatus{}
+	if err := json.NewDecoder(r.Body).Decode(&status); err != nil {
+		utils.ResponseFailed(w, http.StatusBadRequest, "invalid input format", err)
+		return
+	}
+
+	// validate
+	messageInvalid, err := utils.ValidateInput(&status)
+	if err != nil {
+		utils.ResponseFailed(w, http.StatusBadRequest, "invalid input data", messageInvalid)
+		return
+	}
+
+	strSaleId := chi.URLParam(r, "sale_id")
+	saleId, err := uuid.Parse(strSaleId)
+	if err != nil {
+		utils.ResponseFailed(w, http.StatusBadRequest, "invalid input data", err.Error())
+		return
+	}
+
+	newStatus := status.Status
+
+	if err := h.Service.UpdateSaleStatus(ctx, saleId, newStatus); err != nil {
+		utils.ResponseFailed(w, http.StatusBadRequest, "failed update sale status", err.Error())
+		return
+	}
+
+	utils.ResponseSuccess(w, http.StatusOK, "succes", nil)
+}

@@ -12,6 +12,10 @@ type NewSale struct {
 	Quantity int       `json:"quantity" validate:"required,gt=0"`
 }
 
+type NewSaleStatus struct {
+	Status string `json:"status" validate:"required"`
+}
+
 type SaleResponse struct {
 	ID          uuid.UUID       `json:"id"`
 	TotalAmount decimal.Decimal `json:"total_amount"`

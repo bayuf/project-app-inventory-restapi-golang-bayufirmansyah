@@ -85,7 +85,8 @@ func (r *SaleRepository) GetSaleById(ctx context.Context, id uuid.UUID) (*dto.Sa
 	SELECT
 		id, total_amount, status, created_at
 	FROM sales
-	WHERE id = $1;`
+	WHERE id = $1
+	FOR UPDATE;`
 
 	data := dto.SaleResponse{}
 	if err := r.DB.QueryRow(ctx, query, id).
@@ -174,12 +175,26 @@ func (r *SaleRepository) GetSalesByUserId(ctx context.Context, page, limit int, 
 	return &sales, total, nil
 }
 
+func (r *SaleRepository) GetItemStock(ctx context.Context, itemId uuid.UUID) (int, error) {
+	query := `
+	SELECT stock
+	FROM items
+	WHERE id = $1 AND deleted_at IS NULL
+	FOR UPDATE;`
+
+	stock := 0
+	if err := r.DB.QueryRow(ctx, query, itemId).Scan(&stock); err != nil {
+		r.Logger.Error("getItemStock error sale repo", zap.Error(err))
+		return 0, err
+	}
+	return stock, nil
+}
+
 func (r *SaleRepository) UpdateStock(ctx context.Context, data dto.StockUpdateFromSale) error {
 	query := `
 	UPDATE items SET
-		stock = $2, updated_at = NOW()
-	WHERE id = $1 AND
-		deleted_at IS NULL;`
+		stock = stock - $2, updated_at = NOW()
+	WHERE id = $1 AND deleted_at IS NULL;`
 
 	commandTag, err := r.DB.Exec(ctx, query, data.ID, data.Stock)
 	if err != nil {
@@ -215,6 +230,27 @@ func (r *SaleRepository) InsertNewSale(ctx context.Context, data dto.SalesUpdate
 	return nil
 }
 
+func (r *SaleRepository) UpdateNewStatusSale(ctx context.Context, data dto.SalesUpdate) error {
+	query := `
+	UPDATE sales
+	SET status = $2
+	WHERE id = $1;
+	;`
+
+	commandTag, err := r.DB.Exec(ctx, query, data.ID, data.Status)
+	if err != nil {
+		if commandTag.RowsAffected() == 0 {
+			r.Logger.Error("update status sale failed, no row affected", zap.Error(err))
+			return err
+		}
+		r.Logger.Error("failed update status sale", zap.Error(err))
+		return err
+	}
+
+	r.Logger.Info("status sale updated", zap.Any("ID", data.ID))
+	return nil
+}
+
 func (r *SaleRepository) InsertSaleItem(ctx context.Context, data dto.SalesItemsUpdate) error {
 	query := `
 	INSERT INTO sale_items (sale_id, item_id, quantity, price, subtotal)
@@ -231,5 +267,38 @@ func (r *SaleRepository) InsertSaleItem(ctx context.Context, data dto.SalesItems
 	}
 
 	r.Logger.Info("new sale_items created")
+	return nil
+}
+
+func (r *SaleRepository) GetSaleItemBySaleId(ctx context.Context, saleId uuid.UUID) (*dto.SalesItemsUpdate, error) {
+	query := `
+		SELECT id, item_id, quantity, price
+		FROM sale_items
+		WHERE sale_id = $1;`
+
+	saleDetail := dto.SalesItemsUpdate{}
+	if err := r.DB.QueryRow(ctx, query, saleId).
+		Scan(&saleDetail.ID, &saleDetail.ItemID, &saleDetail.Quantity, &saleDetail.Price); err != nil {
+		r.Logger.Error("cant scan get sale_item by sale id")
+		return nil, err
+	}
+	return &saleDetail, nil
+}
+
+func (r *SaleRepository) UpdateSaleStatus(ctx context.Context, saleId uuid.UUID, newStatus string) error {
+	query := `
+	UPDATE sales SET status = $2
+	WHERE id = $1;`
+
+	commandTag, err := r.DB.Exec(ctx, query, saleId, newStatus)
+	if err != nil {
+		if commandTag.RowsAffected() == 0 {
+			r.Logger.Error("update sale status repo error 0 row")
+			return err
+		}
+
+		return err
+	}
+
 	return nil
 }

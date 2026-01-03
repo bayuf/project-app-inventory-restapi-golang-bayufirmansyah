@@ -55,36 +55,24 @@ func (s *SaleService) NewSaleTX(ctx context.Context, newSale dto.NewSale, userId
 	Total := currentPrice.Mul(decQty)
 
 	// Insert to sales
+	saleId := uuid.New()
 	newSales := dto.SalesUpdate{
-		ID:          uuid.New(),
+		ID:          saleId,
 		UserID:      userId,
 		TotalAmount: Total,
-		Status:      "COMPLETED",
+		Status:      "PROCESS",
 	}
 	if err := repoTx.InsertNewSale(ctx, newSales); err != nil {
 		return nil, err
 	}
 
-	// Insert to sales_items
+	// Insert sale history to sales_items (sale detail)
 	if err := repoTx.InsertSaleItem(ctx, dto.SalesItemsUpdate{
 		SaleID:   newSales.ID,
 		ItemID:   newSale.ItemID,
 		Quantity: newSale.Quantity,
 		Price:    itemInfo.Price,
 		SubTotal: Total,
-	}); err != nil {
-		return nil, err
-	}
-
-	// update items stock
-	newStock := (itemInfo.Stock - newSale.Quantity)
-	if newStock <= 0 {
-		return nil, errors.New("invalid quantity")
-	}
-
-	if err := repoTx.UpdateStock(ctx, dto.StockUpdateFromSale{
-		ID:    newSale.ItemID,
-		Stock: newStock,
 	}); err != nil {
 		return nil, err
 	}
@@ -108,6 +96,69 @@ func (s *SaleService) NewSaleTX(ctx context.Context, newSale dto.NewSale, userId
 		Status:      finalSale.Status,
 		Created_At:  finalSale.Created_At,
 	}, nil
+}
+
+func (s *SaleService) UpdateSaleStatus(ctx context.Context, saleId uuid.UUID, newStatus string) error {
+	tx, err := s.Tx.Begin(ctx)
+	if err != nil {
+		s.Logger.Error("cant init tx db on update sale status service", zap.Error(err))
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	// init repo with TX
+	repoTx := repository.NewSaleRepository(tx, s.Logger)
+
+	status, err := repoTx.GetSaleById(ctx, saleId)
+	if err != nil {
+		return err
+	}
+
+	if status.Status != "PROCESS" {
+		return errors.New("sale already finalized")
+	}
+	switch newStatus {
+	case "COMPLETED":
+		// get sale detail from sale_item
+		item, err := repoTx.GetSaleItemBySaleId(ctx, saleId)
+		if err != nil {
+			return err
+		}
+		// get stock info
+		stock, err := repoTx.GetItemStock(ctx, item.ItemID)
+		if err != nil {
+			return err
+		}
+		// cek if stock ready
+		if stock < item.Quantity {
+			return errors.New("insufficient stock")
+		}
+		// decrease stock
+		if err := repoTx.UpdateStock(ctx, dto.StockUpdateFromSale{ID: item.ItemID, Stock: item.Quantity}); err != nil {
+			return err
+		}
+
+		// update status as COMPLETED
+		if err := repoTx.UpdateNewStatusSale(ctx, dto.SalesUpdate{ID: saleId, Status: newStatus}); err != nil {
+			return err
+		}
+
+	case "CANCELED":
+		// stock not updated
+		// update status as CANCELED
+		if err := repoTx.UpdateNewStatusSale(ctx, dto.SalesUpdate{ID: saleId, Status: newStatus}); err != nil {
+			return err
+		}
+	default:
+		return errors.New("invalid status")
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		s.Logger.Error("cant commit update stock", zap.Error(err))
+		return err
+	}
+
+	return nil
 }
 
 func (s *SaleService) GetSaleDetailById(ctx context.Context, id uuid.UUID) (*dto.SaleDetailResponse, error) {
