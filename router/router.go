@@ -113,8 +113,13 @@ func Apiv1(handler *handler.Handler, service *service.Service, mw *middlewareCus
 			// WRITE (staff + admin + super admin)
 			r.With(allRoles).Post("/", handler.SaleHandler.InsertNewSale)
 			r.With(allRoles).Patch("/{sale_id}/status", handler.SaleHandler.UpdateSaleStatus)
-			// WRITE (admin + super admin)
+		})
 
+		// REPORT
+		r.Route("report", func(r chi.Router) {
+			r.With(adminOnly).Group(func(r chi.Router) {
+
+			})
 		})
 	})
 

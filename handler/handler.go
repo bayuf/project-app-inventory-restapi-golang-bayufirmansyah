@@ -16,6 +16,7 @@ type Handler struct {
 	*ItemHandler
 
 	*SaleHandler
+	*ReportHandler
 }
 
 func NewHandler(svc *service.Service, log *zap.Logger, config *utils.Configuration) *Handler {
@@ -28,6 +29,7 @@ func NewHandler(svc *service.Service, log *zap.Logger, config *utils.Configurati
 		CategoryHandler:  NewCategoryHandler(svc.CategoryService, log, config),
 		ItemHandler:      NewItemHandler(svc.ItemService, log, config),
 
-		SaleHandler: NewSaleHandler(svc.SaleService, log, config),
+		SaleHandler:   NewSaleHandler(svc.SaleService, log, config),
+		ReportHandler: NewReportHandler(svc.ReportService, log, config),
 	}
 }

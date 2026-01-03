@@ -16,6 +16,7 @@ type Service struct {
 	*ItemService
 
 	*SaleService
+	*ReportService
 }
 
 func NewService(repo *repository.Repository, log *zap.Logger, tx db.TxManager) *Service {
@@ -28,6 +29,7 @@ func NewService(repo *repository.Repository, log *zap.Logger, tx db.TxManager) *
 		CategoryService:   NewCategoryService(repo.CategoryRepository, log),
 		ItemService:       NewItemService(repo.ItemRepository, log),
 
-		SaleService: NewSaleService(repo.SaleRepository, log, tx),
+		SaleService:   NewSaleService(repo.SaleRepository, log, tx),
+		ReportService: NewReportService(repo.ReportRepository, log),
 	}
 }
