@@ -116,10 +116,15 @@ func Apiv1(handler *handler.Handler, service *service.Service, mw *middlewareCus
 		})
 
 		// REPORT
-		r.Route("report", func(r chi.Router) {
-			r.With(adminOnly).Group(func(r chi.Router) {
-
+		r.Route("/reports", func(r chi.Router) {
+			// READ (staff + admin + super admin)
+			r.With(allRoles).Group(func(r chi.Router) {
+				r.Get("/inventory", handler.ReportHandler.GetItemsReport)
+				r.Get("/sales", handler.ReportHandler.GetSalesReport)
 			})
+
+			// READ (admin + super admin)
+			r.With(adminOnly).Get("/revenue", handler.ReportHandler.GetRevenueReport)
 		})
 	})
 
