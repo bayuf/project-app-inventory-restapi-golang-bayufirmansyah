@@ -7,6 +7,7 @@ import (
 	"github.com/bayuf/project-app-inventory-restapi-golang-bayufirmansyah/db"
 	"github.com/bayuf/project-app-inventory-restapi-golang-bayufirmansyah/dto"
 	"github.com/bayuf/project-app-inventory-restapi-golang-bayufirmansyah/repository"
+	"github.com/bayuf/project-app-inventory-restapi-golang-bayufirmansyah/utils"
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 	"go.uber.org/zap"
@@ -112,4 +113,35 @@ func (s *SaleService) NewSaleTX(ctx context.Context, newSale dto.NewSale, userId
 func (s *SaleService) GetSaleDetailById(ctx context.Context, id uuid.UUID) (*dto.SaleDetailResponse, error) {
 
 	return s.Repo.GetSaleDetailById(ctx, id)
+}
+
+func (s *SaleService) GetStaffSaleDetailById(ctx context.Context, saleId, userId uuid.UUID) (*dto.SaleDetailResponse, error) {
+
+	return s.Repo.GetStaffSaleDetailById(ctx, saleId, userId)
+}
+
+func (s *SaleService) GetAllSales(ctx context.Context, page, limit int, userRole string, userId uuid.UUID) (*[]dto.SaleResponse, *dto.Pagination, error) {
+	var sales *[]dto.SaleResponse
+	var total int
+	var err error
+	if userRole == "admin" || userRole == "super_admin" {
+		sales, total, err = s.Repo.GetSales(ctx, page, limit)
+		if err != nil {
+			return nil, nil, err
+		}
+	} else {
+		sales, total, err = s.Repo.GetSalesByUserId(ctx, page, limit, userId)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	pagination := dto.Pagination{
+		CurrentPage:  page,
+		Limit:        limit,
+		TotalPages:   utils.TotalPage(limit, int64(total)),
+		TotalRecords: total,
+	}
+
+	return sales, &pagination, nil
 }

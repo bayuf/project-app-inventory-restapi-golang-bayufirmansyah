@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 
 	"github.com/bayuf/project-app-inventory-restapi-golang-bayufirmansyah/db"
 	"github.com/bayuf/project-app-inventory-restapi-golang-bayufirmansyah/dto"
@@ -32,6 +33,27 @@ func (r *SaleRepository) GetSaleDetailById(ctx context.Context, id uuid.UUID) (*
 
 	sale := dto.SaleDetailResponse{}
 	if err := r.DB.QueryRow(ctx, query, id).Scan(
+		&sale.ID, &sale.ItemID, &sale.ItemName, &sale.Quantity,
+		&sale.Price, &sale.TotalAmount, &sale.Status, &sale.Created_At,
+	); err != nil {
+		r.Logger.Error("cant scan sale detail", zap.Error(err))
+		return nil, err
+	}
+
+	return &sale, nil
+}
+
+func (r *SaleRepository) GetStaffSaleDetailById(ctx context.Context, saleId, userId uuid.UUID) (*dto.SaleDetailResponse, error) {
+	query := `
+	SELECT
+	s.id, si.item_id, i.name, si.quantity, si.price, s.total_amount, s.status, s.created_at
+	FROM sales s
+		JOIN sale_items si ON s.id = si.sale_id
+		JOIN items i ON si.item_id = i.id
+	WHERE s.id = $1 AND s.user_id = $2; `
+
+	sale := dto.SaleDetailResponse{}
+	if err := r.DB.QueryRow(ctx, query, saleId, userId).Scan(
 		&sale.ID, &sale.ItemID, &sale.ItemName, &sale.Quantity,
 		&sale.Price, &sale.TotalAmount, &sale.Status, &sale.Created_At,
 	); err != nil {
@@ -73,6 +95,83 @@ func (r *SaleRepository) GetSaleById(ctx context.Context, id uuid.UUID) (*dto.Sa
 	}
 
 	return &data, nil
+}
+
+func (r *SaleRepository) GetSales(ctx context.Context, page, limit int) (*[]dto.SaleResponse, int, error) {
+	offset := (page - 1) * limit
+
+	// get total data for pagination
+	var total int
+	countQuery := `SELECT COUNT(*) FROM sales`
+	err := r.DB.QueryRow(ctx, countQuery).Scan(&total)
+	if err != nil {
+		r.Logger.Error("error query getAll repo ", zap.Error(err))
+		return nil, 0, err
+	}
+	query := `
+	SELECT
+		id, total_amount, status, created_at
+	FROM sales
+	ORDER BY created_at ASC
+	LIMIT $1 OFFSET $2`
+
+	rows, err := r.DB.Query(ctx, query, limit, offset)
+	if err != nil {
+		r.Logger.Error("cant scan get all sales", zap.Error(err))
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	sales := []dto.SaleResponse{}
+	for rows.Next() {
+		sale := dto.SaleResponse{}
+		rows.Scan(&sale.ID, &sale.TotalAmount, &sale.Status, &sale.Created_At)
+
+		sales = append(sales, sale)
+	}
+
+	return &sales, total, nil
+}
+
+func (r *SaleRepository) GetSalesByUserId(ctx context.Context, page, limit int, userId uuid.UUID) (*[]dto.SaleResponse, int, error) {
+	offset := (page - 1) * limit
+
+	// get total data for pagination
+	var total int
+	countQuery := `SELECT COUNT(*) FROM sales`
+	err := r.DB.QueryRow(ctx, countQuery).Scan(&total)
+	if err != nil {
+		r.Logger.Error("error query getAll repo ", zap.Error(err))
+		return nil, 0, err
+	}
+	query := `
+	SELECT
+		id, total_amount, status, created_at
+	FROM sales
+	WHERE user_id = $3
+	ORDER BY created_at ASC
+	LIMIT $1 OFFSET $2`
+
+	rows, err := r.DB.Query(ctx, query, limit, offset, userId)
+	if err != nil {
+		r.Logger.Error("cant scan get all sales", zap.Error(err))
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	sales := []dto.SaleResponse{}
+	for rows.Next() {
+		sale := dto.SaleResponse{}
+		rows.Scan(&sale.ID, &sale.TotalAmount, &sale.Status, &sale.Created_At)
+
+		sales = append(sales, sale)
+	}
+
+	if len(sales) <= 0 {
+		return nil, 0, errors.New("empty sales")
+	}
+
+	return &sales, total, nil
 }
 
 func (r *SaleRepository) UpdateStock(ctx context.Context, data dto.StockUpdateFromSale) error {

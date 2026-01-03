@@ -101,9 +101,11 @@ func Apiv1(handler *handler.Handler, service *service.Service, mw *middlewareCus
 			r.With(adminOnly).Delete("/{item_id}", handler.ItemHandler.DeleteItem)
 		})
 
-		// SALE
+		// SALES
 		r.Route("/sales", func(r chi.Router) {
 			// READ (staff + admin + super admin)
+			r.With(allRoles).Get("/", handler.SaleHandler.GetAllSales) //staff only getAll by userId
+			r.With(allRoles).Get("/{sale_id}", handler.SaleHandler.GetSaleInfoStaff)
 
 			// READ (admin + super admin)
 			r.With(adminOnly).Get("/{sale_id}", handler.SaleHandler.GetSaleInfo)

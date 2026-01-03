@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"github.com/bayuf/project-app-inventory-restapi-golang-bayufirmansyah/dto"
 	"github.com/bayuf/project-app-inventory-restapi-golang-bayufirmansyah/middleware"
@@ -49,6 +50,34 @@ func (h *SaleHandler) GetSaleInfo(w http.ResponseWriter, r *http.Request) {
 	utils.ResponseSuccess(w, http.StatusOK, "success", sale)
 }
 
+func (h *SaleHandler) GetSaleInfoStaff(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	if r.Method != "GET" {
+		utils.ResponseFailed(w, http.StatusMethodNotAllowed, "method not allowed", nil)
+	}
+
+	authUser, ok := middleware.GetAuthUser(r)
+	if !ok {
+		utils.ResponseFailed(w, http.StatusUnauthorized, "unauthorized", nil)
+		return
+	}
+
+	strSaleId := chi.URLParam(r, "sale_id")
+
+	uuidSaleId, err := uuid.Parse(strSaleId)
+	if err != nil {
+		utils.ResponseFailed(w, http.StatusBadRequest, "id not valid", err.Error())
+	}
+
+	sale, err := h.Service.GetStaffSaleDetailById(ctx, uuidSaleId, authUser.UserID)
+	if err != nil {
+		utils.ResponseFailed(w, http.StatusBadRequest, "cant get sale detail", err.Error())
+		return
+	}
+
+	utils.ResponseSuccess(w, http.StatusOK, "success", sale)
+}
+
 func (h *SaleHandler) InsertNewSale(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	authUser, ok := middleware.GetAuthUser(r)
@@ -82,4 +111,37 @@ func (h *SaleHandler) InsertNewSale(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.ResponseSuccess(w, http.StatusCreated, "success", saleInfo)
+}
+
+func (h *SaleHandler) GetAllSales(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	if r.Method != "GET" {
+		utils.ResponseFailed(w, http.StatusMethodNotAllowed, "method not allowed", nil)
+		return
+	}
+
+	authUser, ok := middleware.GetAuthUser(r)
+	if !ok {
+		utils.ResponseFailed(w, http.StatusUnauthorized, "unauthorized", nil)
+		return
+	}
+
+	page, err := strconv.Atoi(r.URL.Query().Get("page"))
+
+	if err != nil {
+		h.Logger.Info("invalid page :", zap.Error(err))
+		utils.ResponseFailed(w, http.StatusBadRequest, "invalid page", err)
+		return
+	}
+
+	// page limit
+	limit := h.Config.PageLimit
+
+	items, pagination, err := h.Service.GetAllSales(ctx, page, limit, authUser.Role, authUser.UserID)
+	if err != nil {
+		utils.ResponseFailed(w, http.StatusBadRequest, "cant get all sales", err.Error())
+		return
+	}
+
+	utils.ResponsePagination(w, http.StatusOK, "success", items, *pagination)
 }
