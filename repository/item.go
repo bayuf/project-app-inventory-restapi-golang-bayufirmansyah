@@ -2,8 +2,10 @@ package repository
 
 import (
 	"context"
+	"errors"
 
 	"github.com/bayuf/project-app-inventory-restapi-golang-bayufirmansyah/db"
+	"github.com/bayuf/project-app-inventory-restapi-golang-bayufirmansyah/dto"
 	"github.com/bayuf/project-app-inventory-restapi-golang-bayufirmansyah/model"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -148,5 +150,78 @@ func (r *ItemRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	}
 
 	r.Logger.Info("item deleted ", zap.Any("ID", id))
+	return nil
+}
+
+func (r *ItemRepository) GetItemStock(ctx context.Context, itemId uuid.UUID) (int, error) {
+	query := `
+	SELECT stock
+	FROM items
+	WHERE id = $1 AND deleted_at IS NULL
+	FOR UPDATE;`
+
+	stock := 0
+	if err := r.DB.QueryRow(ctx, query, itemId).Scan(&stock); err != nil {
+		r.Logger.Error("getItemStock error item repo", zap.Error(err))
+		return 0, err
+	}
+	return stock, nil
+}
+
+// func (r *ItemRepository) IncreaseStock(ctx context.Context, id uuid.UUID, quantity int) error {
+// 	query := `
+// 	UPDATE items
+// 		SET stock = stock + $2
+// 	WHERE id = $1 AND deleted_at IS NULL;
+// 	`
+// 	commandTag, err := r.DB.Exec(ctx, query, id, quantity)
+// 	if err != nil {
+// 		if commandTag.RowsAffected() == 0 {
+// 			r.Logger.Error("cant increase stock item", zap.Error(err))
+// 			return errors.New("item not found or failed to update stock")
+// 		}
+
+// 		r.Logger.Error("error", zap.Error(err))
+// 		return err
+// 	}
+
+// 	return nil
+// }
+
+func (r *ItemRepository) UpdateStock(ctx context.Context, id uuid.UUID, quantity int) error {
+	query := `
+	UPDATE items
+		SET stock = stock + $2
+	WHERE id = $1 AND deleted_at IS NULL;
+	`
+
+	commandTag, err := r.DB.Exec(ctx, query, id, quantity)
+	if err != nil {
+		if commandTag.RowsAffected() == 0 {
+			r.Logger.Error("cant update stock item", zap.Error(err))
+			return errors.New("item not found or failed to update stock")
+		}
+
+		r.Logger.Error("error", zap.Error(err))
+		return err
+	}
+	return nil
+}
+
+func (r *ItemRepository) StockAdjustments(ctx context.Context, data dto.StockAdjustment) error {
+	query := `
+	INSERT
+		INTO stock_adjustments (id, item_id, user_id, change, reason)
+		VALUES ($1, $2, $3, $4, $5);`
+
+	commandTag, err := r.DB.Exec(ctx, query, data.ID, data.ItemID, data.UserID, data.Change, data.Reason)
+	if err != nil {
+		if commandTag.RowsAffected() == 0 {
+			r.Logger.Error("error stock adjustment repo", zap.Error(err))
+			return err
+		}
+		r.Logger.Error("error stock adjustment repo", zap.Error(err))
+		return err
+	}
 	return nil
 }

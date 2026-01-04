@@ -38,3 +38,12 @@ type ItemResponse struct {
 	Created_At time.Time       `json:"created_at"`
 	Updated_At time.Time       `json:"updated_at"`
 }
+
+type StockAdjustment struct {
+	ID         uuid.UUID
+	ItemID     uuid.UUID `json:"item_id" validate:"required"`
+	UserID     uuid.UUID `validate:"required"`
+	Change     int       `json:"change" validate:"required"`
+	Reason     string    `json:"reason" validate:"required"`
+	Created_at time.Time
+}

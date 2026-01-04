@@ -2,8 +2,10 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
+	"github.com/bayuf/project-app-inventory-restapi-golang-bayufirmansyah/db"
 	"github.com/bayuf/project-app-inventory-restapi-golang-bayufirmansyah/dto"
 	"github.com/bayuf/project-app-inventory-restapi-golang-bayufirmansyah/model"
 	"github.com/bayuf/project-app-inventory-restapi-golang-bayufirmansyah/repository"
@@ -15,12 +17,14 @@ import (
 type ItemService struct {
 	Repo   *repository.ItemRepository
 	Logger *zap.Logger
+	TX     db.TxManager
 }
 
-func NewItemService(repo *repository.ItemRepository, log *zap.Logger) *ItemService {
+func NewItemService(repo *repository.ItemRepository, log *zap.Logger, tx db.TxManager) *ItemService {
 	return &ItemService{
 		Repo:   repo,
 		Logger: log,
+		TX:     tx,
 	}
 }
 
@@ -107,4 +111,53 @@ func (s *ItemService) UpdateItem(ctx context.Context, new dto.ItemUpdate) error 
 
 func (s *ItemService) DeleteItem(ctx context.Context, id uuid.UUID) error {
 	return s.Repo.Delete(ctx, id)
+}
+
+func (s *ItemService) StockAdjustment(ctx context.Context, data dto.StockAdjustment) error {
+	tx, err := s.TX.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	// init repo with tx
+	repo := repository.NewItemRepository(tx, s.Logger)
+
+	itemStock, err := repo.GetItemStock(ctx, data.ItemID)
+	if err != nil {
+		return err
+	}
+
+	// Update Stock
+	if data.Change < 0 {
+		if itemStock < data.Change {
+			return errors.New("insufficient stock")
+		}
+		if err := repo.UpdateStock(ctx, data.ItemID, data.Change); err != nil {
+			return err
+		}
+
+	} else {
+		if err := repo.UpdateStock(ctx, data.ItemID, data.Change); err != nil {
+			return err
+		}
+	}
+
+	if err := repo.StockAdjustments(ctx, dto.StockAdjustment{
+		ID:     uuid.New(),
+		ItemID: data.ItemID,
+		UserID: data.UserID,
+		Change: data.Change,
+		Reason: data.Reason,
+	}); err != nil {
+		return err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		s.Logger.Error("failed to update stock ajustment", zap.Error(err))
+		return err
+	}
+
+	s.Logger.Info("update stock succes", zap.Any("Item ID", data.ItemID))
+	return nil
 }

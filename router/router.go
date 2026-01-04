@@ -120,6 +120,10 @@ func Apiv1(handler *handler.Handler, service *service.Service, mw *middlewareCus
 			r.With(adminOnly).Post("/", handler.ItemHandler.InputNewItem)
 			r.With(adminOnly).Put("/{item_id}", handler.ItemHandler.UpdateItem)
 			r.With(adminOnly).Delete("/{item_id}", handler.ItemHandler.DeleteItem)
+
+			// WRITE (staff + admin + super admin)
+			r.With(allRoles).Patch("/stock-ajustment", handler.ItemHandler.StockAdjustment)
+
 		})
 
 		// SALES

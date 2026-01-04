@@ -224,16 +224,6 @@ func (h *UserHandler) UpdateMyUserData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// var roleId int
-	// switch user.Role {
-	// case "super_admin":
-	// 	roleId = 1
-	// case "admin":
-	// 	roleId = 2
-	// default:
-	// 	roleId = 3
-	// }
-
 	newData := dto.UserSelfUpdate{ID: user.UserID}
 	if err := json.NewDecoder(r.Body).Decode(&newData); err != nil {
 		utils.ResponseFailed(w, http.StatusBadRequest, "invalid input format", err)

@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/bayuf/project-app-inventory-restapi-golang-bayufirmansyah/dto"
+	"github.com/bayuf/project-app-inventory-restapi-golang-bayufirmansyah/middleware"
 	"github.com/bayuf/project-app-inventory-restapi-golang-bayufirmansyah/service"
 	"github.com/bayuf/project-app-inventory-restapi-golang-bayufirmansyah/utils"
 	"github.com/go-chi/chi/v5"
@@ -139,7 +140,6 @@ func (h *ItemHandler) UpdateItem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.ResponseSuccess(w, http.StatusOK, "success", nil)
-
 }
 
 func (h *ItemHandler) DeleteItem(w http.ResponseWriter, r *http.Request) {
@@ -162,5 +162,39 @@ func (h *ItemHandler) DeleteItem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.ResponseSuccess(w, http.StatusOK, "success", nil)
+}
 
+func (h *ItemHandler) StockAdjustment(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	if r.Method != "PATCH" {
+		utils.ResponseFailed(w, http.StatusMethodNotAllowed, "method not allowed", nil)
+		return
+	}
+
+	user, ok := middleware.GetAuthUser(r)
+	if !ok {
+		utils.ResponseFailed(w, http.StatusUnauthorized, "user not authenticated", nil)
+		return
+	}
+
+	ajust := dto.StockAdjustment{UserID: user.UserID}
+	if err := json.NewDecoder(r.Body).Decode(&ajust); err != nil {
+		utils.ResponseFailed(w, http.StatusBadRequest, "invalid input format", err)
+		return
+	}
+
+	// validate
+	messageInvalid, err := utils.ValidateInput(&ajust)
+	if err != nil {
+		utils.ResponseFailed(w, http.StatusBadRequest, "invalid input data", messageInvalid)
+		return
+	}
+
+	if err := h.Service.StockAdjustment(ctx, ajust); err != nil {
+		h.Logger.Error("failed to update stock item", zap.Error(err))
+		utils.ResponseFailed(w, http.StatusBadRequest, "failed to update stock item", err.Error())
+		return
+	}
+
+	utils.ResponseSuccess(w, http.StatusCreated, "success", nil)
 }

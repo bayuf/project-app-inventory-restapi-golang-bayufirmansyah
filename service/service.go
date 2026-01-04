@@ -27,7 +27,7 @@ func NewService(repo *repository.Repository, log *zap.Logger, tx db.TxManager) *
 		WarehousesService: NewWarehouseService(repo.WarehouseRepository, log),
 		RackService:       NewRackService(repo.RackRepository, log),
 		CategoryService:   NewCategoryService(repo.CategoryRepository, log),
-		ItemService:       NewItemService(repo.ItemRepository, log),
+		ItemService:       NewItemService(repo.ItemRepository, log, tx),
 
 		SaleService:   NewSaleService(repo.SaleRepository, log, tx),
 		ReportService: NewReportService(repo.ReportRepository, log),
