@@ -110,9 +110,13 @@ func Apiv1(handler *handler.Handler, service *service.Service, mw *middlewareCus
 			// READ (admin + super admin)
 			r.With(adminOnly).Get("/{sale_id}", handler.SaleHandler.GetSaleInfo)
 
+			// WRITE (admin + super admin)
+			r.With(adminOnly).Delete("/{sale_id}", handler.SaleHandler.DeleteSale)
+
 			// WRITE (staff + admin + super admin)
 			r.With(allRoles).Post("/", handler.SaleHandler.InsertNewSale)
 			r.With(allRoles).Patch("/{sale_id}/status", handler.SaleHandler.UpdateSaleStatus)
+
 		})
 
 		// REPORT

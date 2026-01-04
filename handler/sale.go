@@ -181,3 +181,24 @@ func (h *SaleHandler) UpdateSaleStatus(w http.ResponseWriter, r *http.Request) {
 
 	utils.ResponseSuccess(w, http.StatusOK, "succes", nil)
 }
+
+func (h *SaleHandler) DeleteSale(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	if r.Method != "DELETE" {
+		utils.ResponseFailed(w, http.StatusMethodNotAllowed, "method not allowed", nil)
+	}
+
+	strSaleId := chi.URLParam(r, "sale_id")
+	saleId, err := uuid.Parse(strSaleId)
+	if err != nil {
+		utils.ResponseFailed(w, http.StatusBadRequest, "invalid input data", err.Error())
+		return
+	}
+
+	if err := h.Service.DeteleSale(ctx, saleId); err != nil {
+		utils.ResponseFailed(w, http.StatusBadRequest, "failed to delete sale", err.Error())
+		return
+	}
+
+	utils.ResponseSuccess(w, http.StatusOK, "succes", nil)
+}

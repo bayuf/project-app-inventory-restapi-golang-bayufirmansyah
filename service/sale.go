@@ -196,3 +196,36 @@ func (s *SaleService) GetAllSales(ctx context.Context, page, limit int, userRole
 
 	return sales, &pagination, nil
 }
+
+func (s *SaleService) DeteleSale(ctx context.Context, saleId uuid.UUID) error {
+	tx, err := s.Tx.Begin(ctx)
+	if err != nil {
+		s.Logger.Error("cant init tx db on update sale status service", zap.Error(err))
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	// init repo with TX
+	repoTx := repository.NewSaleRepository(tx, s.Logger)
+
+	status, err := repoTx.GetSaleById(ctx, saleId)
+	if err != nil {
+		return err
+	}
+
+	if status.Status != "PROCESS" {
+		return errors.New("sale already finalized")
+	}
+
+	// update status as CANCELED
+	if err := repoTx.UpdateNewStatusSale(ctx, dto.SalesUpdate{ID: saleId, Status: "CANCELED"}); err != nil {
+		return err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		s.Logger.Error("cant commit update stock", zap.Error(err))
+		return err
+	}
+
+	return nil
+}
