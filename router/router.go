@@ -32,25 +32,46 @@ func NewRouter(handler *handler.Handler, service *service.Service, log *zap.Logg
 func Apiv1(handler *handler.Handler, service *service.Service, mw *middlewareCustom.Middleware) *chi.Mux {
 	r := chi.NewRouter()
 
-	// auth routes
-	r.Route("/auth", func(r chi.Router) {
-		r.Post("/login", handler.AuthHandler.Login)
-		// protected
-		r.Group(func(r chi.Router) {
-			r.Use(mw.AuthMiddleware.SessionAuthMiddleware())
-			r.Get("/me", handler.UserHandler.ShowMyData)
-			r.Post("/logout", handler.AuthHandler.Logout)
-		})
-	})
-
 	// superAdmin := mw.AuthMiddleware.RequireRoles("super_admin")
 	adminOnly := mw.AuthMiddleware.RequireRoles("super_admin", "admin")
 	allRoles := mw.AuthMiddleware.RequireRoles("super_admin", "admin", "staff")
 
+	// auth routes
+	r.Route("/auth", func(r chi.Router) {
+		r.Post("/login", handler.AuthHandler.Login)
+
+		// protected
+		r.Group(func(r chi.Router) {
+			r.Use(mw.AuthMiddleware.SessionAuthMiddleware())
+			r.Post("/logout", handler.AuthHandler.Logout)
+		})
+	})
+
+	// public path USERS
+	r.Post("/users/register", handler.UserHandler.Register)
+
 	// protected routes
 	r.Group(func(r chi.Router) {
-
 		r.Use(mw.AuthMiddleware.SessionAuthMiddleware())
+
+		//USERS
+		r.Route("/users", func(r chi.Router) {
+			// READ (staff + admin + super admin)
+			r.Get("/me", handler.UserHandler.ShowMyData)
+
+			// READ (admin + super admin)
+			r.With(adminOnly).Get("/", handler.UserHandler.GetAllUsers)
+
+			// WRITE (staff + admin + super admin)
+			r.With(allRoles).Put("/update", handler.UserHandler.UpdateMyUserData)
+
+			// WRITE (admin + super admin)
+			r.With(adminOnly).Post("/create", handler.UserHandler.Create)
+			r.With(adminOnly).Put("/{user_id}", handler.UserHandler.UpdateUser)
+			r.With(adminOnly).Delete("/{user_id}", handler.UserHandler.DeleteUser)
+			r.With(adminOnly).Patch("/{user_id}", handler.UserHandler.SuspendUser)
+
+		})
 
 		// WAREHOUSES
 		r.Route("/warehouses", func(r chi.Router) {
